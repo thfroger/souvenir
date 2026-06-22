@@ -1,4 +1,4 @@
-import Csodium
+import Clibsodium
 
 /// Password-based key derivation with Argon2id (SECURITY.md §3).
 /// Used to derive the key that wraps the MIK; changing the password re-wraps

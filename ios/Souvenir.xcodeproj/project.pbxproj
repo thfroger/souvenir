@@ -10,6 +10,7 @@
 		1A0000000000000000000012 /* SouvenirApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000010 /* SouvenirApp.swift */; };
 		1A0000000000000000000013 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000011 /* ContentView.swift */; };
 		1A0000000000000000000015 /* Palette.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000014 /* Palette.swift */; };
+		1A0000000000000000000022 /* CryptoCore in Frameworks */ = {isa = PBXBuildFile; productRef = 1A0000000000000000000021 /* CryptoCore */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -20,7 +21,9 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		1A0000000000000000000008 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		1A0000000000000000000008 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (
+				1A0000000000000000000022 /* CryptoCore in Frameworks */,
+			); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -43,7 +46,9 @@
 				1A0000000000000000000007 /* Sources */,
 				1A0000000000000000000008 /* Frameworks */,
 				1A0000000000000000000009 /* Resources */,
-			); buildRules = (); dependencies = (); name = Souvenir; productName = Souvenir; productReference = 1A0000000000000000000006 /* Souvenir.app */; productType = "com.apple.product-type.application"; };
+			); buildRules = (); dependencies = (); name = Souvenir; packageProductDependencies = (
+				1A0000000000000000000021 /* CryptoCore */,
+			); productName = Souvenir; productReference = 1A0000000000000000000006 /* Souvenir.app */; productType = "com.apple.product-type.application"; };
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -59,7 +64,9 @@
 			}; buildConfigurationList = 1A000000000000000000000A /* Build configuration list for PBXProject "Souvenir" */; compatibilityVersion = "Xcode 14.0"; developmentRegion = en; hasScannedForEncodings = 0; knownRegions = (
 				en,
 				Base,
-			); mainGroup = 1A0000000000000000000002; productRefGroup = 1A0000000000000000000003 /* Products */; projectDirPath = ""; projectRoot = ""; targets = (
+			); mainGroup = 1A0000000000000000000002; packageReferences = (
+				1A0000000000000000000020 /* XCLocalSwiftPackageReference "../crypto-core/swift" */,
+			); productRefGroup = 1A0000000000000000000003 /* Products */; projectDirPath = ""; projectRoot = ""; targets = (
 				1A0000000000000000000005 /* Souvenir */,
 			); };
 /* End PBXProject section */
@@ -156,6 +163,14 @@
 				1A000000000000000000000F /* Release */,
 			); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		1A0000000000000000000020 /* XCLocalSwiftPackageReference "../crypto-core/swift" */ = {isa = XCLocalSwiftPackageReference; relativePath = "../crypto-core/swift"; };
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		1A0000000000000000000021 /* CryptoCore */ = {isa = XCSwiftPackageProductDependency; productName = CryptoCore; };
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 1A0000000000000000000001 /* Project object */;
 }
