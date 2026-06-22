@@ -1,57 +1,32 @@
 // swift-tools-version:5.9
 import PackageDescription
-import Foundation
 
-// libsodium is a system dependency (SECURITY.md §3: libsodium exclusively).
-// Resolve the Homebrew prefix for both Apple-Silicon (/opt/homebrew) and Intel
-// (/usr/local) so `swift test` works locally and on either macOS CI runner,
-// without requiring pkg-config to be installed.
-func sodiumPrefix() -> String {
-    let candidates = [
-        "/opt/homebrew/opt/libsodium",
-        "/usr/local/opt/libsodium",
-        "/opt/homebrew",
-        "/usr/local",
-        "/usr",
-    ]
-    let fm = FileManager.default
-    for c in candidates where fm.fileExists(atPath: c + "/include/sodium.h") {
-        return c
-    }
-    return "/usr/local"
-}
-
-let prefix = sodiumPrefix()
-let includeFlags: [String] = ["-Xcc", "-I\(prefix)/include"]
-let linkFlags: [String] = ["-L\(prefix)/lib"]
-
+// libsodium is the only crypto dependency (SECURITY.md §3). It is provided here
+// by swift-sodium's `Clibsodium` — a vendored xcframework covering all Apple
+// platforms (macOS + iOS device/simulator), so the same core builds for the CLI,
+// CI, and the iOS app. Pinned exactly: the crypto core is frozen and audited
+// (SECURITY.md §1.5), it must not float.
 let package = Package(
     name: "CryptoCore",
-    platforms: [.macOS(.v13)],
+    platforms: [.macOS(.v13), .iOS(.v17)],
     products: [
         .library(name: "CryptoCore", targets: ["CryptoCore"]),
     ],
+    dependencies: [
+        .package(url: "https://github.com/jedisct1/swift-sodium.git", exact: "0.9.1"),
+    ],
     targets: [
-        // Thin system-library shim over libsodium.
-        .systemLibrary(name: "Csodium", path: "Sources/Csodium"),
-
-        // The isolated, audited crypto core (SECURITY.md §1.5 — frozen in the
-        // signed binary; this is what gets audited).
+        // The isolated, audited crypto core (SECURITY.md §1.5).
         .target(
             name: "CryptoCore",
-            dependencies: ["Csodium"],
-            swiftSettings: [.unsafeFlags(includeFlags)]
+            dependencies: [.product(name: "Clibsodium", package: "swift-sodium")]
         ),
-
-        // Blocking crypto suite (TESTING.md §1).
-        // Implemented as an executable runner (not XCTest) so it runs on a
-        // Command-Line-Tools-only toolchain as well as full Xcode / CI runners.
+        // Blocking crypto suite (TESTING.md §1) as an executable runner (no XCTest),
+        // so it runs on a Command-Line-Tools-only toolchain and on CI.
         // `swift run CryptoCoreTests` exits non-zero on any failure.
         .executableTarget(
             name: "CryptoCoreTests",
-            dependencies: ["CryptoCore"],
-            swiftSettings: [.unsafeFlags(includeFlags)],
-            linkerSettings: [.unsafeFlags(linkFlags)]
+            dependencies: ["CryptoCore"]
         ),
     ]
 )

@@ -10,8 +10,7 @@ jobs:
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
-      - name: Install libsodium
-        run: brew install libsodium
+      # libsodium is vendored by swift-sodium (xcframework) — no system install needed.
       - name: Run crypto suite
         working-directory: crypto-core/swift
         run: swift run CryptoCoreTests

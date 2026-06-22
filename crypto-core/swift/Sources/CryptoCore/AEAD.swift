@@ -1,4 +1,4 @@
-import Csodium
+import Clibsodium
 
 /// Authenticated encryption with XChaCha20-Poly1305 (IETF).
 /// One disposable data key (DEK) per memory encrypts the blob (SECURITY.md §3).

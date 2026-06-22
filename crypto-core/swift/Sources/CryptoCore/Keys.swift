@@ -1,4 +1,4 @@
-import Csodium
+import Clibsodium
 
 /// A 32-byte symmetric key. Every tier of the hierarchy (SECURITY.md §3) is a
 /// symmetric key; the *role* is what the wrapping graph encodes.
