@@ -57,6 +57,20 @@ Règle simple : **un invariant de `SECURITY.md` l'emporte toujours sur un détai
 
 ---
 
+## Structure du dépôt
+
+Monorepo (les « deux bases de code » natives de `ARCHITECTURE.md §1` cohabitent ici) :
+
+- `*.md` (racine) — corpus d'autorité (ci-dessus) + handoff design (`DESIGN.md`, `README.md`, `*.dc.html`, `support.js`), **conservés tels quels**, corrigés par l'erratum `DESIGN_INTEGRATION.md §0`. `SECURITY.md` = canon FR ; `SECURITY.en.md` = traduction générée (ne pas éditer à la main).
+- `crypto-core/` — le noyau crypto isolé et audité (`SECURITY.md §1.5`). `swift/` = Swift Package + **suite crypto bloquante** (`TESTING.md §1`) ; `vectors/` = vecteurs partagés que l'impl Kotlin devra rejouer (interop multi-appareils).
+- `ios/`, `android/` — apps natives (SwiftUI / Compose), UI fine sur le noyau. Non buildables sans Xcode / Android Studio.
+- `.github/workflows/` — CI ; le job `crypto-core` (suite §1) est bloquant. Job d'invariants (`TESTING.md §2`) en attente du backend.
+- `backend/` *(à venir)* — entrepôt de blobs « bête » + tests d'invariants.
+
+Lancer la suite crypto : `cd crypto-core/swift && swift run CryptoCoreTests` (prérequis `brew install libsodium`).
+
+---
+
 ## Convention de balises dans les docs
 
 - `[FIGÉ]` — décision constitutive, ne pas rediscuter sans raison forte.
