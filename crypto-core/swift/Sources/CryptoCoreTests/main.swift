@@ -111,18 +111,61 @@ h.test("derived key can wrap the MIK") {
     try expectEqual(try KeyWrap.unwrap(wrapped, with: derived), mik)
 }
 
-// ─────────────────────── Shamir (§5) — PENDING ───────────────────
-h.section("Shamir 2-of-3 over the Recovery Key — PENDING (see Shamir.swift)")
+// ─────────────────────── Shamir (§5) ─────────────────────────────
+h.section("Shamir 2-of-3 over the Recovery Key")
 
-h.test("every 2-of-3 subset reconstructs") { try skip("Shamir.split/combine not implemented") }
-h.test("single share reveals nothing") { try skip("Shamir reconstruction with 1 share must fail") }
-h.test("corrupted share is detected") { try skip("tampered share must be detected") }
-h.test("RK rotation invalidates old shares") { try skip("new RK, zero re-encryption, old shares inert") }
-h.test("stub throws notImplemented (stays honest)") {
-    try expectThrowsError({ _ = try Shamir.split(secret: [1, 2, 3]) }) {
-        if case .some(.notImplemented) = ($0 as? CryptoError) { return true }
-        return false
+h.test("every 2-of-3 subset reconstructs the secret") {
+    let rk = try RecoveryKey.generate().bytes
+    let shares = try Shamir.split(secret: rk) // default 2-of-3
+    try expect(shares.count == 3, "expected 3 shares")
+    try expectEqual(try Shamir.combine([shares[0], shares[1]]), rk)
+    try expectEqual(try Shamir.combine([shares[0], shares[2]]), rk)
+    try expectEqual(try Shamir.combine([shares[1], shares[2]]), rk)
+    try expectEqual(try Shamir.combine(shares), rk) // all three too
+}
+
+h.test("a single share is rejected (reveals nothing)") {
+    let shares = try Shamir.split(secret: try RecoveryKey.generate().bytes)
+    try expectThrowsError({ _ = try Shamir.combine([shares[0]]) }) {
+        ($0 as? CryptoError) == .invalidShares
     }
+}
+
+h.test("a corrupted share is detected") {
+    let rk = try RecoveryKey.generate().bytes
+    var shares = try Shamir.split(secret: rk)
+    var bad = shares[1].data
+    bad[0] ^= 0x01
+    shares[1] = Shamir.Share(index: shares[1].index, data: bad)
+    try expectThrowsError({ _ = try Shamir.combine([shares[0], shares[1]]) }) {
+        ($0 as? CryptoError) == .shareIntegrityFailed
+    }
+}
+
+h.test("duplicate index is rejected") {
+    let shares = try Shamir.split(secret: try RecoveryKey.generate().bytes)
+    try expectThrowsError({ _ = try Shamir.combine([shares[0], shares[0]]) }) {
+        ($0 as? CryptoError) == .invalidShares
+    }
+}
+
+h.test("RK rotation invalidates old shares") {
+    let rk1 = try RecoveryKey.generate().bytes
+    let rk2 = try RecoveryKey.generate().bytes
+    let s1 = try Shamir.split(secret: rk1)
+    let s2 = try Shamir.split(secret: rk2)
+    try expectEqual(try Shamir.combine([s2[0], s2[1]]), rk2)    // new shares -> new RK
+    try expectNotEqual(try Shamir.combine([s1[0], s1[1]]), rk2) // old shares never yield new RK
+    try expectThrows { _ = try Shamir.combine([s1[0], s2[1]]) } // mixing generations is detected
+}
+
+h.test("full recovery flow: shares -> RK -> unwrap MIK (§5)") {
+    let rk = try RecoveryKey.generate()
+    let mik = try MasterIdentityKey.generate()
+    let mikUnderRK = try KeyWrap.wrap(mik, under: rk) // the opaque blob the server stores
+    let shares = try Shamir.split(secret: rk.bytes)
+    let rkRecovered = try SymmetricKey(bytes: try Shamir.combine([shares[0], shares[2]]))
+    try expectEqual(try KeyWrap.unwrap(mikUnderRK, with: rkRecovered), mik)
 }
 
 h.finish()

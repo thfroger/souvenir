@@ -14,4 +14,5 @@ multi-device sync, V1):
 
 Primitives (`SECURITY.md §3`): `XChaCha20-Poly1305` (AEAD), key wrapping
 (DEK<VK<MIK, MIK<{password-derived, device-local, Recovery Key}), `Argon2id`
-(KDF), and Shamir 2-of-3 over the Recovery Key (`§5`, **pending**).
+(KDF), and Shamir 2-of-3 over the Recovery Key (`§5`) — implemented, **pending
+external audit** before freeze (`§8.4`).
