@@ -19,5 +19,7 @@ Command-Line-Tools-only toolchain (no Xcode required) as well as on CI.
 - ✅ AEAD (XChaCha20-Poly1305): round-trip, tamper/wrong-key rejection
 - ✅ Key wrapping: DEK<VK<MIK<RK round-trip, clean failures
 - ✅ Argon2id KDF (interactive params — **final params `[À VALIDER]`**, §3/§8.4)
-- ⏳ Shamir 2-of-3 over the Recovery Key — **pending** (see `Shamir.swift`; must
-  be a vetted constant-time GF(256) implementation, not hand-rolled)
+- ✅ Shamir 2-of-3 over the Recovery Key: constant-time GF(256), non-zero leading
+  coefficient, BLAKE2b integrity tag (corrupt/insufficient shares detected), full
+  recovery flow (shares → RK → unwrap MIK). **Pending external audit** before
+  freeze (SECURITY.md §8.4) — that review is what makes the claim verifiable.
