@@ -16,6 +16,18 @@ jobs:
         working-directory: crypto-core/swift
         run: swift run CryptoCoreTests
 
+  ios-app:
+    name: iOS app shell builds (simulator)
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build for iOS Simulator
+        working-directory: ios
+        run: >
+          xcodebuild -project Souvenir.xcodeproj -scheme Souvenir
+          -sdk iphonesimulator -configuration Debug
+          CODE_SIGNING_ALLOWED=NO build
+
   # ── PENDING ───────────────────────────────────────────────────────────────
   # invariants:
   #   name: invariants — blocking (TESTING.md §2)
