@@ -47,3 +47,7 @@ coverage/
 secrets/
 *.shamir
 *.recovery
+
+# ───────────────────── Tooling caches ────────────────────
+.impeccable/
+.claude/
