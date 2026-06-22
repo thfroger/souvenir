@@ -8,6 +8,7 @@ import CryptoCore
 /// `CryptoCore` to prove the wiring end-to-end.
 struct ContentView: View {
     @State private var cryptoStatus: SelfCheck = .running
+    @State private var showRecovery = false
 
     enum SelfCheck {
         case running, ok, failed(String)
@@ -42,10 +43,18 @@ struct ContentView: View {
                 statusLabel
                     .font(.footnote.monospaced())
                     .padding(.top, 8)
+
+                Button("Configurer la récupération") { showRecovery = true }
+                    .font(.callout.weight(.semibold))
+                    .foregroundStyle(Palette.ink)
+                    .padding(.top, 4)
             }
             .padding(32)
         }
         .task { cryptoStatus = Self.runSelfCheck() }
+        .sheet(isPresented: $showRecovery) {
+            SocialRecoveryView(childName: "Léa") { showRecovery = false }
+        }
     }
 
     @ViewBuilder private var statusLabel: some View {
