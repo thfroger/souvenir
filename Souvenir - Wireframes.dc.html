@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Kalam:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{ font-family:'Kalam',cursive; }
+  .ph{ font-family:'Kalam',cursive; color:#6b6b6b; }
+  .hand{ font-family:'Caveat',cursive; }
+  /* a faint paper grid */
+  .grid-bg{ background-color:#f4f1ea; background-image:linear-gradient(#e0dccf 1px,transparent 1px),linear-gradient(90deg,#e0dccf 1px,transparent 1px); background-size:26px 26px; }
+</style>
+</helmet>
+
+<div class="grid-bg" style="width:max-content; min-width:100%; min-height:100vh; box-sizing:border-box; padding:56px 64px 96px; color:#2b2b2b;">
+
+  <!-- title block -->
+  <div style="max-width:780px; margin-bottom:46px;">
+    <div class="hand" style="font-size:15px; letter-spacing:.18em; color:#8a8475; text-transform:uppercase; margin-bottom:6px;">wireframes · low-fi</div>
+    <div class="hand" style="font-size:62px; line-height:.95; font-weight:700;">souvenir — storyboard</div>
+    <p style="font-size:16px; line-height:1.5; color:#5c5c5c; max-width:600px; margin:12px 0 0;">Structure &amp; flux uniquement — pas de couleur définitive ni de typo finale. Chaque flèche = une interaction. <span style="background:#ffe9a8; padding:1px 6px; border-radius:3px;">jaune = action / cible</span>, <span style="background:#cfe6d6; padding:1px 6px; border-radius:3px;">vert = sélection active</span>.</p>
+  </div>
+
+  <!-- ============ ROW 1 : niveau 1 ============ -->
+  <div class="hand" style="font-size:24px; color:#8a8475; margin-bottom:18px;">① Écrans de niveau 1 — onglets Frise / Arbre</div>
+  <div style="display:flex; gap:54px; align-items:flex-start; margin-bottom:64px;">
+
+    <!-- ░ FRISE ░ -->
+    <div style="flex:none; width:300px;">
+      <div class="hand" style="font-size:26px; margin-bottom:10px;">A · Frise (accueil)</div>
+      <div style="width:300px; height:620px; border:2.5px solid #2b2b2b; border-radius:34px; background:#fbfaf6; padding:16px 16px 0; position:relative; box-shadow:6px 7px 0 rgba(43,43,43,.12);">
+        <!-- notch -->
+        <div style="width:76px; height:18px; border:2px solid #2b2b2b; border-radius:12px; margin:2px auto 14px;"></div>
+        <!-- header -->
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px;">
+          <div>
+            <div class="ph" style="font-size:11px; letter-spacing:.1em;">MARDI 22 JUIN</div>
+            <div class="hand" style="font-size:26px; line-height:1;">Bonjour, Camille</div>
+          </div>
+          <div style="width:30px; height:30px; border:2px solid #2b2b2b; border-radius:50%; display:flex; align-items:center; justify-content:center;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2b2b2b" stroke-width="2" stroke-linecap="round"><line x1="4" y1="8" x2="20" y2="8"/><line x1="4" y1="16" x2="20" y2="16"/></svg>
+          </div>
+        </div>
+        <!-- child switcher -->
+        <div style="display:flex; gap:8px; align-items:center; margin-bottom:16px;">
+          <div style="display:flex; align-items:center; gap:6px; padding:5px 13px 5px 5px; border:2px solid #2b2b2b; border-radius:100px; background:#cfe6d6;">
+            <span style="width:22px;height:22px;border:2px solid #2b2b2b;border-radius:50%;"></span><span class="hand" style="font-size:18px;">Léa</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:6px; padding:5px 13px 5px 5px; border:2px dashed #9a9a9a; border-radius:100px;">
+            <span style="width:22px;height:22px;border:2px solid #9a9a9a;border-radius:50%;"></span><span class="hand" style="font-size:18px; color:#7a7a7a;">Noé</span>
+          </div>
+          <div style="width:28px;height:28px;border:2px dashed #9a9a9a;border-radius:50%; display:flex; align-items:center; justify-content:center; color:#7a7a7a; font-size:18px;">+</div>
+        </div>
+        <!-- surprise card (target) -->
+        <div data-flow="surprise" style="border:2.5px solid #2b2b2b; border-radius:18px; overflow:hidden; margin-bottom:16px; position:relative;">
+          <div style="height:120px; background:repeating-linear-gradient(135deg,#e7e3d8 0 10px,#f1eee6 10px 20px); border-bottom:2px solid #2b2b2b; position:relative;">
+            <div style="position:absolute; top:9px; left:9px; padding:3px 9px; background:#ffe9a8; border:1.5px solid #2b2b2b; border-radius:100px; font-size:10px;" class="hand">IL Y A 3 ANS · AUJOURD'HUI</div>
+            <span class="ph" style="position:absolute; bottom:7px; right:9px; font-size:10px;">[ photo ]</span>
+          </div>
+          <div style="padding:10px 12px 12px;">
+            <div class="hand" style="font-size:20px; line-height:1;">Souvenir surprise du jour</div>
+            <div style="height:7px; width:80%; background:#e2ddd0; border-radius:4px; margin-top:8px;"></div>
+            <div style="height:7px; width:55%; background:#e2ddd0; border-radius:4px; margin-top:5px;"></div>
+          </div>
+          <div class="hand" style="position:absolute; top:6px; right:10px; font-size:13px; color:#b07a4a;">tap →</div>
+        </div>
+        <!-- timeline -->
+        <div class="ph" style="font-size:11px; letter-spacing:.12em; margin-bottom:10px;">CETTE SEMAINE</div>
+        <div style="position:relative; padding-left:20px;">
+          <div style="position:absolute; left:4px; top:4px; bottom:0; width:2px; background:#cfcabb;"></div>
+          <div data-flow="entry" style="position:relative; margin-bottom:16px; display:flex; gap:10px;">
+            <span style="position:absolute; left:-20px; top:3px; width:9px;height:9px;border:2px solid #2b2b2b;border-radius:50%; background:#fbfaf6;"></span>
+            <div style="flex:none; width:46px;height:46px;border:2px solid #2b2b2b;border-radius:10px; background:repeating-linear-gradient(135deg,#e7e3d8 0 8px,#f1eee6 8px 16px);"></div>
+            <div style="flex:1;"><div class="hand" style="font-size:17px; line-height:1;">Titre du souvenir</div><div class="ph" style="font-size:11px; margin-top:3px;">photo · vocal 0:12</div></div>
+          </div>
+          <div style="position:relative; display:flex; gap:10px;">
+            <span style="position:absolute; left:-20px; top:3px; width:9px;height:9px;border:2px solid #2b2b2b;border-radius:50%; background:#fbfaf6;"></span>
+            <div style="flex:none; width:46px;height:46px;border:2px solid #2b2b2b;border-radius:10px; display:flex; align-items:center; justify-content:center; font-family:'Caveat'; font-size:34px; color:#9a9a9a;">&ldquo;</div>
+            <div style="flex:1;"><div class="hand" style="font-size:17px; line-height:1;">« Une citation… »</div><div class="ph" style="font-size:11px; margin-top:3px;">citation</div></div>
+          </div>
+        </div>
+        <!-- glass tab bar -->
+        <div style="position:absolute; left:50%; transform:translateX(-50%); bottom:14px; display:flex; align-items:center; gap:20px; padding:8px 18px; border:2.5px solid #2b2b2b; border-radius:100px; background:#fff;">
+          <span class="hand" style="font-size:18px; border-bottom:2.5px solid #2b2b2b;">Frise</span>
+          <span data-flow="add" style="width:38px;height:38px;border:2.5px solid #2b2b2b; border-radius:50%; background:#ffe9a8; display:flex; align-items:center; justify-content:center; font-size:22px;">+</span>
+          <span class="hand" style="font-size:18px; color:#8a8a8a;">Arbre</span>
+        </div>
+      </div>
+      <div class="ph" style="font-size:12px; margin-top:10px; text-align:center;">cartes &amp; entrées → souvenir · + → ajout · Arbre → écran B</div>
+    </div>
+
+    <!-- ░ ARBRE ░ -->
+    <div style="flex:none; width:300px;">
+      <div class="hand" style="font-size:26px; margin-bottom:10px;">B · Arbre</div>
+      <div style="width:300px; height:620px; border:2.5px solid #2b2b2b; border-radius:34px; background:#fbfaf6; padding:16px 16px 0; position:relative; box-shadow:6px 7px 0 rgba(43,43,43,.12);">
+        <div style="width:76px; height:18px; border:2px solid #2b2b2b; border-radius:12px; margin:2px auto 16px;"></div>
+        <div style="text-align:center; margin-bottom:8px;">
+          <div class="ph" style="font-size:11px; letter-spacing:.14em;">L'ARBRE DE</div>
+          <div class="hand" style="font-size:30px; line-height:1;">Léa</div>
+        </div>
+        <!-- tree sketch -->
+        <div style="position:relative; height:330px;">
+          <!-- trunk -->
+          <div style="position:absolute; bottom:18px; left:50%; transform:translateX(-50%); width:16px; height:120px; border:2px solid #2b2b2b; border-radius:8px; background:#f1eee6;"></div>
+          <!-- foliage outlines -->
+          <div style="position:absolute; top:8px; left:50%; transform:translateX(-50%); width:150px; height:150px; border:2.5px solid #2b2b2b; border-radius:50%; background:#f1eee6;"></div>
+          <div style="position:absolute; top:50px; left:22px; width:104px; height:104px; border:2.5px solid #2b2b2b; border-radius:50%; background:#faf8f2;"></div>
+          <div style="position:absolute; top:56px; right:20px; width:108px; height:108px; border:2.5px solid #2b2b2b; border-radius:50%; background:#faf8f2;"></div>
+          <!-- blossoms = milestones (plain dots) -->
+          <div style="position:absolute; top:84px; left:66px; width:15px;height:15px;border:2.5px solid #2b2b2b;border-radius:50%; background:#fff;"></div>
+          <div style="position:absolute; top:128px; left:120px; width:15px;height:15px;border:2.5px solid #2b2b2b;border-radius:50%; background:#fff;"></div>
+          <!-- active blossom + label (target) -->
+          <div data-flow="jalon" style="position:absolute; top:66px; right:74px; width:20px;height:20px;border:2.5px solid #2b2b2b;border-radius:50%; background:#ffe9a8;"></div>
+          <div data-flow="jalon" style="position:absolute; top:44px; right:8px; padding:6px 10px; border:2px solid #2b2b2b; border-radius:10px; background:#fff;">
+            <div class="ph" style="font-size:9px;">14 MOIS</div>
+            <div class="hand" style="font-size:15px; line-height:1;">Premiers pas</div>
+          </div>
+          <div class="hand" style="position:absolute; top:122px; right:36px; font-size:13px; color:#b07a4a;">tap →</div>
+        </div>
+        <!-- stats -->
+        <div style="display:flex; gap:10px;">
+          <div style="flex:1; border:2px solid #2b2b2b; border-radius:14px; padding:9px 11px; background:#fff;">
+            <div class="ph" style="font-size:9px;">TAILLE</div><div class="hand" style="font-size:22px; line-height:1;">78 cm</div>
+          </div>
+          <div style="flex:1; border:2px solid #2b2b2b; border-radius:14px; padding:9px 11px; background:#fff;">
+            <div class="ph" style="font-size:9px;">SOUVENIRS</div><div class="hand" style="font-size:22px; line-height:1;">142 éclats</div>
+          </div>
+        </div>
+        <div style="position:absolute; left:50%; transform:translateX(-50%); bottom:14px; display:flex; align-items:center; gap:20px; padding:8px 18px; border:2.5px solid #2b2b2b; border-radius:100px; background:#fff;">
+          <span class="hand" style="font-size:18px; color:#8a8a8a;">Frise</span>
+          <span data-flow="add" style="width:38px;height:38px;border:2.5px solid #2b2b2b; border-radius:50%; background:#ffe9a8; display:flex; align-items:center; justify-content:center; font-size:22px;">+</span>
+          <span class="hand" style="font-size:18px; border-bottom:2.5px solid #2b2b2b;">Arbre</span>
+        </div>
+      </div>
+      <div class="ph" style="font-size:12px; margin-top:10px; text-align:center;">pastille/étiquette jalon → souvenir · Frise → écran A</div>
+    </div>
+
+    <!-- flow legend arrow into row 2 -->
+    <div style="flex:none; align-self:center; display:flex; flex-direction:column; align-items:center; gap:8px; padding-top:40px;">
+      <svg width="90" height="60" viewBox="0 0 90 60" fill="none" stroke="#b07a4a" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="2 7"><path d="M4 12 C 50 12, 40 48, 84 48"/><path d="M74 40 L86 48 L73 54" fill="none"/></svg>
+      <div class="hand" style="font-size:18px; color:#b07a4a; max-width:120px; text-align:center;">ouvrir un souvenir</div>
+    </div>
+
+  </div>
+
+  <!-- ============ ROW 2 : modales ============ -->
+  <div class="hand" style="font-size:24px; color:#8a8475; margin-bottom:18px;">② Couches modales — montent par-dessus</div>
+  <div style="display:flex; gap:54px; align-items:flex-start;">
+
+    <!-- ░ SOUVENIR IMMERSIF ░ -->
+    <div style="flex:none; width:300px;">
+      <div class="hand" style="font-size:26px; margin-bottom:10px;">C · Souvenir <span style="font-size:16px; background:#ffe9a8; padding:1px 7px; border-radius:4px;">prioritaire</span></div>
+      <div style="width:300px; height:620px; border:2.5px solid #2b2b2b; border-radius:34px; background:#fbfaf6; padding:0; position:relative; overflow:hidden; box-shadow:6px 7px 0 rgba(43,43,43,.12);">
+        <!-- big photo -->
+        <div style="height:300px; background:repeating-linear-gradient(135deg,#e7e3d8 0 12px,#f1eee6 12px 24px); border-bottom:2.5px solid #2b2b2b; position:relative;">
+          <div style="width:76px; height:18px; border:2px solid #2b2b2b; border-radius:12px; margin:0 auto; position:absolute; top:8px; left:50%; transform:translateX(-50%); background:#e7e3d8;"></div>
+          <div data-flow="back" style="position:absolute; top:42px; left:14px; width:32px;height:32px;border:2px solid #2b2b2b;border-radius:50%; background:#fff; display:flex; align-items:center; justify-content:center;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2b2b2b" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="14 6 8 12 14 18"/></svg>
+          </div>
+          <div style="position:absolute; top:42px; right:14px; width:32px;height:32px;border:2px solid #2b2b2b;border-radius:50%; background:#fff; display:flex; align-items:center; justify-content:center;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2b2b2b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.4-7-9.3A3.4 3.4 0 0 1 12 7a3.4 3.4 0 0 1 7 3.7C19 15.6 12 20 12 20z"/></svg>
+          </div>
+          <span class="ph" style="position:absolute; bottom:9px; right:12px; font-size:10px;">[ photo plein cadre ]</span>
+        </div>
+        <!-- editorial sheet -->
+        <div style="padding:18px 18px;">
+          <div class="ph" style="font-size:10px; letter-spacing:.12em; margin-bottom:7px;">14 OCT. 2023 · LÉA, 14 MOIS</div>
+          <div class="hand" style="font-size:30px; line-height:1; margin-bottom:12px;">Premiers pas dans l'herbe</div>
+          <div style="height:7px; width:100%; background:#e2ddd0; border-radius:4px; margin-bottom:6px;"></div>
+          <div style="height:7px; width:92%; background:#e2ddd0; border-radius:4px; margin-bottom:6px;"></div>
+          <div style="height:7px; width:70%; background:#e2ddd0; border-radius:4px; margin-bottom:18px;"></div>
+          <!-- voice player -->
+          <div data-flow="audio" style="display:flex; align-items:center; gap:10px; border:2.5px solid #2b2b2b; border-radius:16px; padding:10px 12px; background:#fff; margin-bottom:9px;">
+            <span style="width:32px;height:32px;border:2.5px solid #2b2b2b;border-radius:50%; background:#ffe9a8; display:flex; align-items:center; justify-content:center;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="#2b2b2b" stroke="none"><polygon points="8 5 19 12 8 19"/></svg>
+            </span>
+            <span style="flex:1; display:flex; align-items:center; gap:2.5px; height:24px;">
+              <span style="width:3px;height:8px;background:#2b2b2b;border-radius:2px;"></span><span style="width:3px;height:18px;background:#2b2b2b;border-radius:2px;"></span><span style="width:3px;height:12px;background:#2b2b2b;border-radius:2px;"></span><span style="width:3px;height:22px;background:#2b2b2b;border-radius:2px;"></span><span style="width:3px;height:14px;background:#c9c4b6;border-radius:2px;"></span><span style="width:3px;height:18px;background:#c9c4b6;border-radius:2px;"></span><span style="width:3px;height:10px;background:#c9c4b6;border-radius:2px;"></span><span style="width:3px;height:16px;background:#c9c4b6;border-radius:2px;"></span><span style="width:3px;height:11px;background:#c9c4b6;border-radius:2px;"></span><span style="width:3px;height:20px;background:#c9c4b6;border-radius:2px;"></span>
+            </span>
+            <span class="ph" style="font-size:11px;">0:12</span>
+          </div>
+          <div class="ph" style="font-size:11px; margin-bottom:16px;">▶ play/pause · onde s'anime</div>
+          <!-- milestone chip -->
+          <div style="display:inline-flex; align-items:center; gap:6px; border:2px solid #2b2b2b; border-radius:100px; padding:6px 12px; background:#cfe6d6;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#2b2b2b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21v-8"/><path d="M12 13c0-3.3 2.7-6 6-6 0 3.3-2.7 6-6 6z"/></svg>
+            <span class="hand" style="font-size:15px;">Jalon · Premiers pas</span>
+          </div>
+        </div>
+      </div>
+      <div class="ph" style="font-size:12px; margin-top:10px; text-align:center;">‹ ferme (redescend) · ❤ like · états : play/pause, lié/non, citation sans photo</div>
+    </div>
+
+    <!-- ░ FEUILLE D'AJOUT ░ -->
+    <div style="flex:none; width:300px;">
+      <div class="hand" style="font-size:26px; margin-bottom:10px;">D · Ajouter (＋)</div>
+      <div style="width:300px; height:620px; border:2.5px solid #2b2b2b; border-radius:34px; background:#e9e6dd; padding:0; position:relative; overflow:hidden; box-shadow:6px 7px 0 rgba(43,43,43,.12);">
+        <!-- dimmed level-1 behind -->
+        <div style="position:absolute; inset:0; opacity:.4; padding:18px;">
+          <div class="hand" style="font-size:24px;">Bonjour, Camille</div>
+          <div style="height:90px; border:2px solid #9a9a9a; border-radius:14px; margin-top:14px;"></div>
+        </div>
+        <div style="position:absolute; inset:0; background:rgba(43,43,43,.12);"></div>
+        <!-- sheet -->
+        <div style="position:absolute; left:0; right:0; bottom:0; border:2.5px solid #2b2b2b; border-bottom:none; border-radius:24px 24px 0 0; background:#fbfaf6; padding:12px 16px 22px;">
+          <div style="width:38px;height:5px;border-radius:3px;background:#cfcabb;margin:0 auto 14px;"></div>
+          <div class="hand" style="font-size:24px; line-height:1;">Garder un souvenir</div>
+          <div class="ph" style="font-size:12px; margin:3px 0 16px;">de Léa — aujourd'hui</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">
+            <div style="border:2px solid #2b2b2b; border-radius:14px; padding:12px 4px; text-align:center; background:#fff;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2b2b2b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="3"/><circle cx="12" cy="13.5" r="3.3"/></svg><div class="hand" style="font-size:14px; margin-top:5px;">Photo</div></div>
+            <div style="border:2px solid #2b2b2b; border-radius:14px; padding:12px 4px; text-align:center; background:#fff;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2b2b2b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><line x1="12" y1="18" x2="12" y2="21"/></svg><div class="hand" style="font-size:14px; margin-top:5px;">Vocal</div></div>
+            <div style="border:2px solid #2b2b2b; border-radius:14px; padding:12px 4px; text-align:center; background:#fff;"><div style="font-family:'Caveat'; font-size:30px; line-height:.7; height:22px; color:#2b2b2b;">&ldquo;</div><div class="hand" style="font-size:14px; margin-top:5px;">Citation</div></div>
+            <div style="border:2px solid #2b2b2b; border-radius:14px; padding:12px 4px; text-align:center; background:#fff;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2b2b2b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21v-8"/><path d="M12 13c0-3.3 2.7-6 6-6 0 3.3-2.7 6-6 6z"/></svg><div class="hand" style="font-size:14px; margin-top:5px;">Jalon</div></div>
+            <div style="border:2px solid #2b2b2b; border-radius:14px; padding:12px 4px; text-align:center; background:#fff;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2b2b2b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="9" width="18" height="6" rx="2"/><line x1="8" y1="9" x2="8" y2="12"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="16" y1="9" x2="16" y2="12"/></svg><div class="hand" style="font-size:14px; margin-top:5px;">Mesure</div></div>
+            <div style="border:2px solid #2b2b2b; border-radius:14px; padding:12px 4px; text-align:center; background:#fff;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2b2b2b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7-4-4-7 7-1 5z"/><line x1="14" y1="6" x2="18" y2="10"/></svg><div class="hand" style="font-size:14px; margin-top:5px;">Dessin</div></div>
+          </div>
+          <div class="ph" style="font-size:11px; margin-top:14px; text-align:center;">tap à côté = fermer</div>
+        </div>
+      </div>
+      <div class="ph" style="font-size:12px; margin-top:10px; text-align:center;">6 types · voile sombre derrière · bottom-sheet</div>
+    </div>
+
+    <!-- flow map -->
+    <div style="flex:none; width:300px; align-self:stretch; border:2px dashed #b9b3a3; border-radius:18px; padding:20px 22px; background:rgba(255,255,255,.4);">
+      <div class="hand" style="font-size:24px; margin-bottom:16px;">Carte des flux</div>
+      <div style="display:flex; flex-direction:column; gap:13px; font-size:14px; line-height:1.35;">
+        <div><b class="hand" style="font-size:17px;">A Frise ⇄ B Arbre</b><br><span class="ph">onglet barre du bas (verre)</span></div>
+        <div style="border-top:1.5px dashed #ccc; padding-top:11px;"><b class="hand" style="font-size:17px;">→ C Souvenir</b><br><span class="ph">carte surprise · entrée frise · jalon de l'arbre — monte du bas, ‹ pour fermer</span></div>
+        <div style="border-top:1.5px dashed #ccc; padding-top:11px;"><b class="hand" style="font-size:17px;">＋ → D Ajout</b><br><span class="ph">bouton central, sur A et B</span></div>
+        <div style="border-top:1.5px dashed #ccc; padding-top:11px;"><b class="hand" style="font-size:17px;">Léa / Noé</b><br><span class="ph">recharge A + B + surprise</span></div>
+        <div style="border-top:1.5px dashed #ccc; padding-top:11px;"><b class="hand" style="font-size:17px;">+ enfant</b><br><span class="ph">depuis le sélecteur</span></div>
+        <div style="margin-top:6px; padding:10px 12px; background:#ffe9a8; border:2px solid #2b2b2b; border-radius:12px;" class="hand">⚠ verre dépoli = barre du bas uniquement · zéro émoji, icônes au trait</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

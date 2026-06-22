@@ -1,0 +1,49 @@
+# ───────────────────────── macOS ─────────────────────────
+.DS_Store
+*.swp
+*~
+
+# ──────────────── Swift / SwiftPM / Xcode (iOS) ───────────
+.build/
+.swiftpm/
+Packages/
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+DerivedData/
+*.xcuserstate
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# ──────────── Kotlin / Android / Gradle (Android) ─────────
+*.iml
+.gradle/
+build/
+local.properties
+.idea/
+captures/
+*.apk
+*.aab
+*.keystore
+!debug.keystore
+
+# ───────────────────────── Node (backend) ────────────────
+node_modules/
+dist/
+coverage/
+*.log
+.env
+.env.*
+!.env.example
+
+# ───────────────────── Secrets / crypto ──────────────────
+# Defense-in-depth: never commit keys, shares, or test secrets
+# (SECURITY.md §1.7 — no server secret / test key / backdoor in the bundle).
+*.pem
+*.key
+*.p12
+*.mobileprovision
+secrets/
+*.shamir
+*.recovery

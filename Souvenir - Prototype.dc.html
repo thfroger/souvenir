@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Hanken+Grotesk:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{ font-family:'Hanken Grotesk', sans-serif; -webkit-font-smoothing:antialiased; }
+</style>
+</helmet>
+
+<div style="min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px; padding:48px; background:radial-gradient(120% 120% at 50% 0%, #efe7db 0%, #e3ddd4 60%, #ddd6cc 100%); font-family:'Hanken Grotesk',sans-serif;">
+
+  <!-- PHONE -->
+  <div style="width:390px; height:812px; border-radius:52px; background:#1c1a1e; padding:13px; box-shadow:0 40px 80px -28px rgba(60,40,60,.5);">
+    <div style="width:100%; height:100%; border-radius:40px; overflow:hidden; position:relative; background:#f7f2ec;">
+
+      <!-- island + status -->
+      <div style="position:absolute; top:11px; left:50%; transform:translateX(-50%); width:108px; height:30px; background:#000; border-radius:20px; z-index:60;"></div>
+      <div style="position:absolute; top:0; left:0; right:0; height:54px; display:flex; align-items:center; justify-content:space-between; padding:0 30px; font-size:14px; font-weight:600; color:#3b3340; z-index:40; pointer-events:none;">
+        <span>9:41</span>
+        <span style="width:18px;height:11px;border:1.5px solid #3b3340;border-radius:3px;display:inline-block;position:relative;"><span style="position:absolute;inset:1.5px;background:#3b3340;border-radius:1px;width:70%;"></span></span>
+      </div>
+
+      <!-- ░░░ FRISE ░░░ -->
+      <sc-if value="{{ isFrise }}" hint-placeholder-val="{{ true }}">
+      <div style="position:absolute; top:54px; left:0; right:0; bottom:0; overflow-y:auto; overflow-x:hidden; padding:8px 26px 120px;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:22px;">
+          <div>
+            <div style="font-family:'Geist Mono',monospace; font-size:11px; letter-spacing:.12em; color:#a89c8e; margin-bottom:4px;">MARDI 22 JUIN</div>
+            <div style="font-family:'Instrument Serif',serif; font-size:32px; line-height:1;">Bonjour, Camille</div>
+          </div>
+          <div style="width:40px; height:40px; border-radius:50%; background:#ece4d8; display:flex; align-items:center; justify-content:center; color:#6b6470;">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="4" y1="8" x2="20" y2="8"/><line x1="4" y1="16" x2="20" y2="16"/><circle cx="9" cy="8" r="2.6" fill="#ece4d8"/><circle cx="15" cy="16" r="2.6" fill="#ece4d8"/></svg>
+          </div>
+        </div>
+
+        <!-- child switcher -->
+        <div style="display:flex; gap:10px; margin-bottom:26px;">
+          <div onClick="{{ pickLea }}" style="cursor:pointer; display:flex; align-items:center; gap:8px; padding:6px 14px 6px 6px; border-radius:100px; background:{{ leaBg }};">
+            <span style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#f1c8d4,#c9c2ee);"></span>
+            <span style="font-size:13.5px; font-weight:600; color:{{ leaText }};">Léa</span>
+          </div>
+          <div onClick="{{ pickNoe }}" style="cursor:pointer; display:flex; align-items:center; gap:8px; padding:6px 14px 6px 6px; border-radius:100px; background:{{ noeBg }};">
+            <span style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#bcd6ee,#c4ddcb);"></span>
+            <span style="font-size:13.5px; font-weight:600; color:{{ noeText }};">Noé</span>
+          </div>
+          <div onClick="{{ openAdd }}" style="cursor:pointer; width:40px;height:40px;border-radius:50%;border:1.5px dashed #cabfae; display:flex; align-items:center; justify-content:center; color:#b3a591;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="12" y1="6" x2="12" y2="18"/><line x1="6" y1="12" x2="18" y2="12"/></svg>
+          </div>
+        </div>
+
+        <!-- surprise -->
+        <div onClick="{{ surprise.open }}" style="cursor:pointer; border-radius:26px; overflow:hidden; background:#fff; box-shadow:0 14px 30px -16px rgba(80,50,60,.28); margin-bottom:28px;">
+          <div style="position:relative; height:188px; background:{{ surprise.bg }};">
+            <div style="position:absolute; inset:0; background:repeating-linear-gradient(135deg, rgba(255,255,255,.16) 0 14px, rgba(255,255,255,0) 14px 28px);"></div>
+            <div style="position:absolute; top:14px; left:14px; padding:6px 12px; background:rgba(28,26,30,.5); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); border-radius:100px; color:#fff; font-family:'Geist Mono',monospace; font-size:10px; letter-spacing:.1em;">IL Y A 3 ANS · AUJOURD'HUI</div>
+            <span style="position:absolute; bottom:12px; right:14px; font-family:'Geist Mono',monospace; font-size:10px; color:rgba(255,255,255,.85);">{{ surprise.photoCap }}</span>
+          </div>
+          <div style="padding:18px 20px 20px;">
+            <div style="font-family:'Instrument Serif',serif; font-size:24px; line-height:1.05; margin-bottom:6px;">{{ surprise.title }}</div>
+            <p style="font-size:13.5px; color:#7a7280; line-height:1.5; margin:0;">{{ surprise.sub }}</p>
+          </div>
+        </div>
+
+        <div style="font-family:'Geist Mono',monospace; font-size:11px; letter-spacing:.14em; color:#a89c8e; margin-bottom:16px;">CETTE SEMAINE</div>
+        <div style="position:relative; padding-left:26px;">
+          <div style="position:absolute; left:5px; top:6px; bottom:10px; width:1.5px; background:#e2d8c9;"></div>
+          <sc-for list="{{ list }}" as="item" hint-placeholder-count="3">
+            <div onClick="{{ item.open }}" style="cursor:pointer; position:relative; margin-bottom:24px;">
+              <span style="position:absolute; left:-26px; top:4px; width:11px; height:11px; border-radius:50%; border:2px solid #f7f2ec; background:{{ item.dot }};"></span>
+              <div style="font-family:'Geist Mono',monospace; font-size:10px; color:#b3a591; margin-bottom:8px;">{{ item.dateLabel }}</div>
+              <div style="display:flex; gap:14px;">
+                <div style="flex:none; width:66px; height:66px; border-radius:16px; overflow:hidden; position:relative; background:{{ item.bg }};">
+                  <sc-if value="{{ item.isCitation }}" hint-placeholder-val="{{ false }}">
+                    <span style="position:absolute; inset:0; display:flex; align-items:flex-start; justify-content:center; padding-top:4px; font-family:'Instrument Serif',serif; font-size:52px; line-height:.8; color:rgba(59,51,64,.4);">&ldquo;</span>
+                  </sc-if>
+                </div>
+                <div style="flex:1; min-width:0;">
+                  <div style="font-family:'Instrument Serif',serif; font-size:19px; line-height:1.1; margin-bottom:5px;">{{ item.title }}</div>
+                  <div style="font-size:12px; color:#9a9088;">{{ item.meta }}</div>
+                </div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- ░░░ ARBRE ░░░ -->
+      <sc-if value="{{ isArbre }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute; top:54px; left:0; right:0; bottom:0; overflow-y:auto; overflow-x:hidden; padding:18px 26px 120px; background:linear-gradient(180deg,#f4eee5 0%,#f7f2ec 60%);">
+        <div style="text-align:center; margin-bottom:4px;">
+          <div style="font-family:'Geist Mono',monospace; font-size:10px; letter-spacing:.16em; color:#a89c8e; margin-bottom:6px;">L'ARBRE DE</div>
+          <div style="font-family:'Instrument Serif',serif; font-size:32px; line-height:1;">{{ treeName }}</div>
+        </div>
+        <div style="position:relative; height:400px; margin:4px 0;">
+          <div style="position:absolute; bottom:26px; left:50%; transform:translateX(-50%); width:230px; height:26px; border-radius:50%; background:radial-gradient(ellipse,#e6ddcd,transparent 70%);"></div>
+          <div style="position:absolute; bottom:40px; left:50%; transform:translateX(-50%); width:22px; height:150px; border-radius:12px; background:linear-gradient(90deg,#cdb7a1,#bd9f86);"></div>
+          <div style="position:absolute; bottom:150px; left:50%; width:60px; height:11px; border-radius:8px; background:#c6af99; transform:translateX(-100%) rotate(-30deg); transform-origin:right;"></div>
+          <div style="position:absolute; bottom:162px; left:50%; width:60px; height:11px; border-radius:8px; background:#c6af99; transform:rotate(30deg); transform-origin:left;"></div>
+          <div style="position:absolute; top:10px; left:50%; transform:translateX(-50%); width:172px; height:172px; border-radius:50%; background:radial-gradient(circle at 40% 35%,#d3e4cf,#bdd6b9);"></div>
+          <div style="position:absolute; top:54px; left:24px; width:124px; height:124px; border-radius:50%; background:radial-gradient(circle at 40% 35%,#ddccea,#c9c2ee); opacity:.9;"></div>
+          <div style="position:absolute; top:60px; right:20px; width:132px; height:132px; border-radius:50%; background:radial-gradient(circle at 40% 35%,#f6d4c0,#f1c8d4); opacity:.9;"></div>
+          <div style="position:absolute; top:120px; left:50%; transform:translateX(-50%); width:118px; height:118px; border-radius:50%; background:radial-gradient(circle at 40% 35%,#f4e7bb,#f0dfae); opacity:.82;"></div>
+          <div style="position:absolute; top:96px; left:70px; width:16px; height:16px; border-radius:50%; background:#fff; box-shadow:0 2px 8px rgba(120,90,100,.25); border:3px solid #c9c2ee;"></div>
+          <div style="position:absolute; top:140px; left:128px; width:16px; height:16px; border-radius:50%; background:#fff; box-shadow:0 2px 8px rgba(120,90,100,.25); border:3px solid #f0dfae;"></div>
+          <div onClick="{{ openActive }}" style="cursor:pointer; position:absolute; top:70px; right:86px; width:22px; height:22px; border-radius:50%; background:#c08a72; box-shadow:0 4px 14px rgba(192,138,114,.5); border:3px solid #fff; z-index:6;"></div>
+          <div onClick="{{ openActive }}" style="cursor:pointer; position:absolute; top:46px; right:18px; padding:9px 14px; background:#fff; border-radius:14px; box-shadow:0 8px 22px rgba(120,90,100,.18); z-index:6;">
+            <div style="font-family:'Geist Mono',monospace; font-size:9px; color:#b3a591; letter-spacing:.08em; margin-bottom:2px;">{{ activeAge }}</div>
+            <div style="font-family:'Instrument Serif',serif; font-size:16px; line-height:1; color:#3b3340;">{{ activeLabel }}</div>
+          </div>
+        </div>
+        <div style="display:flex; gap:12px; margin-top:6px;">
+          <div style="flex:1; padding:14px 16px; background:#fff; border-radius:18px; box-shadow:0 1px 3px rgba(0,0,0,.05);">
+            <div style="font-family:'Geist Mono',monospace; font-size:10px; color:#a89c8e; margin-bottom:6px;">TAILLE</div>
+            <div style="font-family:'Instrument Serif',serif; font-size:26px; line-height:1;">{{ stTaille }} <span style="font-size:14px; color:#9a9088;">cm</span></div>
+          </div>
+          <div style="flex:1; padding:14px 16px; background:#fff; border-radius:18px; box-shadow:0 1px 3px rgba(0,0,0,.05);">
+            <div style="font-family:'Geist Mono',monospace; font-size:10px; color:#a89c8e; margin-bottom:6px;">SOUVENIRS</div>
+            <div style="font-family:'Instrument Serif',serif; font-size:26px; line-height:1;">{{ stSouv }} <span style="font-size:14px; color:#9a9088;">éclats</span></div>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- ░░░ TAB BAR (glass) ░░░ -->
+      <div style="position:absolute; bottom:0; left:0; right:0; height:104px; display:flex; align-items:flex-end; justify-content:center; padding-bottom:24px; z-index:45; background:linear-gradient(to top, #f7f2ec 40%, rgba(247,242,236,0)); pointer-events:none;">
+        <div style="pointer-events:auto; display:flex; align-items:center; gap:30px; padding:12px 24px; background:rgba(255,255,255,.55); backdrop-filter:blur(22px) saturate(1.5); -webkit-backdrop-filter:blur(22px) saturate(1.5); border:1px solid rgba(255,255,255,.7); border-radius:100px; box-shadow:0 12px 30px -8px rgba(80,50,60,.22);">
+          <span onClick="{{ showFrise }}" style="cursor:pointer; font-family:'Instrument Serif',serif; font-size:18px; color:{{ friseColor }};">Frise</span>
+          <span onClick="{{ openAdd }}" style="cursor:pointer; width:50px; height:50px; border-radius:50%; background:#3b3340; color:#fff; display:flex; align-items:center; justify-content:center;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><line x1="12" y1="6" x2="12" y2="18"/><line x1="6" y1="12" x2="18" y2="12"/></svg>
+          </span>
+          <span onClick="{{ showArbre }}" style="cursor:pointer; font-family:'Instrument Serif',serif; font-size:18px; color:{{ arbreColor }};">Arbre</span>
+        </div>
+      </div>
+
+      <!-- ░░░ DETAIL (immersif) ░░░ -->
+      <div style="position:absolute; inset:0; z-index:50; background:#f7f2ec; transition:transform .42s cubic-bezier(.4,0,.2,1); transform:translateY({{ detailY }}); pointer-events:{{ detailPE }};">
+        <div style="position:relative; height:430px; background:{{ dBg }};">
+          <div style="position:absolute; inset:0; background:repeating-linear-gradient(135deg, rgba(255,255,255,.14) 0 16px, rgba(255,255,255,0) 16px 32px);"></div>
+          <div style="position:absolute; top:54px; left:24px; right:24px; display:flex; align-items:center; justify-content:space-between;">
+            <div onClick="{{ closeDetail }}" style="cursor:pointer; width:38px; height:38px; border-radius:50%; background:rgba(255,255,255,.6); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); display:flex; align-items:center; justify-content:center; color:#3b3340;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="14 6 8 12 14 18"/></svg>
+            </div>
+            <div onClick="{{ toggleLike }}" style="cursor:pointer; width:38px; height:38px; border-radius:50%; background:rgba(255,255,255,.6); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); display:flex; align-items:center; justify-content:center; color:{{ heartColor }};">
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="{{ heartFill }}" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.4-7-9.3A3.4 3.4 0 0 1 12 7a3.4 3.4 0 0 1 7 3.7C19 15.6 12 20 12 20z"/></svg>
+            </div>
+          </div>
+          <span style="position:absolute; bottom:16px; right:18px; font-family:'Geist Mono',monospace; font-size:10px; color:rgba(255,255,255,.9);">{{ dPhotoCap }}</span>
+        </div>
+        <div style="position:absolute; top:398px; left:0; right:0; bottom:0; background:#f7f2ec; border-radius:32px 32px 0 0; padding:30px 28px; overflow-y:auto;">
+          <div style="font-family:'Geist Mono',monospace; font-size:11px; letter-spacing:.14em; color:#b3a591; margin-bottom:12px;">{{ dDate }}</div>
+          <div style="font-family:'Instrument Serif',serif; font-size:36px; line-height:1.04; margin-bottom:18px;">{{ dTitle }}</div>
+          <p style="font-size:15px; line-height:1.62; color:#5e5862; margin:0 0 24px;">{{ dNote }}</p>
+
+          <sc-if value="{{ dHasVoice }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex; align-items:center; gap:14px; padding:14px 18px; background:#fff; border-radius:20px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:14px;">
+            <div onClick="{{ togglePlay }}" style="cursor:pointer; flex:none; width:42px; height:42px; border-radius:50%; background:#c08a72; color:#fff; display:flex; align-items:center; justify-content:center;">
+              <sc-if value="{{ playing }}" hint-placeholder-val="{{ false }}">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="6" y="5" width="4" height="14" rx="1.3"/><rect x="14" y="5" width="4" height="14" rx="1.3"/></svg>
+              </sc-if>
+              <sc-if value="{{ paused }}" hint-placeholder-val="{{ true }}">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="8 5 19 12 8 19"/></svg>
+              </sc-if>
+            </div>
+            <span style="display:flex; align-items:center; gap:3px; flex:1; height:30px;">
+              <sc-for list="{{ waveBars }}" as="bar" hint-placeholder-count="14">
+                <span style="width:3px; border-radius:2px; height:{{ bar.h }}; background:{{ bar.color }};"></span>
+              </sc-for>
+            </span>
+            <span style="font-family:'Geist Mono',monospace; font-size:11px; color:#9a9088;">{{ dVoiceLen }}</span>
+          </div>
+          <div style="font-size:12px; color:#a89c8e; margin-bottom:18px; padding-left:4px;">{{ dVoiceLabel }}</div>
+          </sc-if>
+
+          <sc-if value="{{ dHasMilestone }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; gap:9px;">
+            <span style="display:inline-flex; align-items:center; gap:7px; padding:8px 14px; background:#ece4d8; border-radius:100px; font-size:12.5px; color:#6b6470;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7d9b7a" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21v-8"/><path d="M12 13c0-3.3 2.7-6 6-6 0 3.3-2.7 6-6 6z"/><path d="M12 16c0-2.8-2.2-5-5-5 0 2.8 2.2 5 5 5z"/></svg>
+              {{ dMilestone }}
+            </span>
+          </div>
+          </sc-if>
+        </div>
+      </div>
+
+      <!-- ░░░ ADD SHEET ░░░ -->
+      <div onClick="{{ closeAdd }}" style="position:absolute; inset:0; z-index:55; background:rgba(28,22,30,.32); transition:opacity .3s ease; opacity:{{ addOpacity }}; pointer-events:{{ addPE }};"></div>
+      <div style="position:absolute; left:0; right:0; bottom:0; z-index:56; background:#f7f2ec; border-radius:30px 30px 0 0; padding:14px 24px 36px; box-shadow:0 -16px 40px rgba(60,40,60,.2); transition:transform .4s cubic-bezier(.4,0,.2,1); transform:translateY({{ addY }});">
+        <div style="width:44px; height:5px; border-radius:3px; background:#dcd0c2; margin:0 auto 20px;"></div>
+        <div style="font-family:'Instrument Serif',serif; font-size:26px; margin-bottom:4px;">Garder un souvenir</div>
+        <div style="font-size:13px; color:#9a9088; margin-bottom:22px;">de {{ treeName }} — aujourd'hui</div>
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px;">
+          <div onClick="{{ closeAdd }}" style="cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:9px; padding:18px 6px; background:#fff; border-radius:20px; box-shadow:0 1px 3px rgba(0,0,0,.05);">
+            <span style="color:#c08a72;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="3"/><circle cx="12" cy="13.5" r="3.4"/><path d="M8 7l1.6-2.6h4.8L16 7"/></svg></span>
+            <span style="font-size:12.5px; color:#5e5862;">Photo</span>
+          </div>
+          <div onClick="{{ closeAdd }}" style="cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:9px; padding:18px 6px; background:#fff; border-radius:20px; box-shadow:0 1px 3px rgba(0,0,0,.05);">
+            <span style="color:#8a82c4;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><line x1="12" y1="18" x2="12" y2="21"/></svg></span>
+            <span style="font-size:12.5px; color:#5e5862;">Note vocale</span>
+          </div>
+          <div onClick="{{ closeAdd }}" style="cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:9px; padding:18px 6px; background:#fff; border-radius:20px; box-shadow:0 1px 3px rgba(0,0,0,.05);">
+            <span style="font-family:'Instrument Serif',serif; font-size:34px; line-height:.6; color:#c69a6a; height:24px; display:flex; align-items:center;">&ldquo;</span>
+            <span style="font-size:12.5px; color:#5e5862;">Citation</span>
+          </div>
+          <div onClick="{{ closeAdd }}" style="cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:9px; padding:18px 6px; background:#fff; border-radius:20px; box-shadow:0 1px 3px rgba(0,0,0,.05);">
+            <span style="color:#7d9b7a;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21v-8"/><path d="M12 13c0-3.3 2.7-6 6-6 0 3.3-2.7 6-6 6z"/><path d="M12 16c0-2.8-2.2-5-5-5 0 2.8 2.2 5 5 5z"/></svg></span>
+            <span style="font-size:12.5px; color:#5e5862;">Jalon</span>
+          </div>
+          <div onClick="{{ closeAdd }}" style="cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:9px; padding:18px 6px; background:#fff; border-radius:20px; box-shadow:0 1px 3px rgba(0,0,0,.05);">
+            <span style="color:#c98aa0;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="9" width="18" height="6" rx="2"/><line x1="8" y1="9" x2="8" y2="12"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="16" y1="9" x2="16" y2="12"/></svg></span>
+            <span style="font-size:12.5px; color:#5e5862;">Mesure</span>
+          </div>
+          <div onClick="{{ closeAdd }}" style="cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:9px; padding:18px 6px; background:#fff; border-radius:20px; box-shadow:0 1px 3px rgba(0,0,0,.05);">
+            <span style="color:#6f9bb5;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7-4-4-7 7-1 5z"/><line x1="14" y1="6" x2="18" y2="10"/></svg></span>
+            <span style="font-size:12.5px; color:#5e5862;">Dessin</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div style="font-size:12.5px; color:#8a8278; font-family:'Geist Mono',monospace; letter-spacing:.04em;">changez d'enfant · ouvrez un souvenir · lisez l'audio · ＋ pour ajouter</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { screen:'frise', child:'lea', openId:null, addOpen:false, playing:false, progress:0, liked:{} };
+
+  DATA = [
+    // LÉA
+    { id:'lea-plage', child:'lea', surprise:true, bg:'linear-gradient(135deg,#f4cdb6,#f1c8d4)', photoCap:'PHOTO · LÉA 11 MOIS',
+      title:'Première fois à la plage', sub:'Tu as hurlé de joie en touchant l\u2019eau froide, puis refusé de partir.',
+      dDate:'12 AOÛT 2023 · LÉA, 11 MOIS', note:'Tu as hurlé de joie en touchant l\u2019eau froide, puis tu n\u2019as plus voulu quitter le bord. Le sel séchait sur tes joues rondes.',
+      hasVoice:true, voiceLabel:'le cri de joie de Léa', voiceLen:'0:08' },
+    { id:'lea-pas', child:'lea', dot:'#c08a72', bg:'linear-gradient(150deg,#c4ddcb,#bcd6ee 60%,#c9c2ee)', dateLabel:'20 JUIN · LÉA', meta:'Photo · note vocale 0:12', photoCap:'PHOTO · LÉA 14 MOIS',
+      title:'Premiers pas dans l\u2019herbe', dDate:'14 OCT. 2023 · LÉA, 14 MOIS',
+      note:'Tu t\u2019es lâchée du banc et tu as fait trois pas vers moi en riant aux éclats. Le soleil était bas, l\u2019herbe te chatouillait les orteils.',
+      hasVoice:true, voiceLabel:'la voix de Léa', voiceLen:'0:12', milestone:'Jalon · Premiers pas' },
+    { id:'lea-lune', child:'lea', dot:'#c9c2ee', isCitation:true, bg:'linear-gradient(135deg,#f0dfae,#f4cdb6)', dateLabel:'18 JUIN · LÉA', meta:'Citation · en voiture', photoCap:'CITATION · LÉA',
+      title:'« La lune me suit ! »', dDate:'18 JUIN 2026 · LÉA, 3 ANS',
+      note:'Le nez collé à la vitre, sur la banquette arrière : « La lune me suit ! ». On a roulé en silence pour ne pas casser la magie.',
+      hasVoice:false },
+    { id:'lea-dent', child:'lea', dot:'#f1c8d4', bg:'linear-gradient(135deg,#f3cdd6,#cdc6f0)', dateLabel:'12 JUIN · LÉA', meta:'Jalon · première dent', photoCap:'PHOTO · LÉA',
+      title:'La première dent', dDate:'12 JUIN 2026 · LÉA, 2 ANS',
+      note:'Une petite perle blanche, en bas. Tu mordillais tout ce qui passait à portée — y compris mon pouce.',
+      hasVoice:false, milestone:'Jalon · Première dent' },
+    // NOÉ
+    { id:'noe-bain', child:'noe', surprise:true, bg:'linear-gradient(135deg,#f4cdb6,#f1c8d4)', photoCap:'PHOTO · NOÉ 18 MOIS',
+      title:'Le bain de mousse interminable', sub:'« encore bulles ! » — tu refusais de sortir de l\u2019eau ce soir-là.',
+      dDate:'21 JUIN 2023 · NOÉ, 18 MOIS', note:'« encore bulles ! ». Tu refusais de sortir de l\u2019eau, une couronne de mousse sur la tête, hilare.',
+      hasVoice:true, voiceLabel:'le rire de Noé', voiceLen:'0:09' },
+    { id:'noe-chateau', child:'noe', dot:'#bcd6ee', bg:'linear-gradient(150deg,#bcd6ee,#c4ddcb)', dateLabel:'19 JUIN · NOÉ', meta:'Photo · 3 clichés', photoCap:'PHOTO · NOÉ',
+      title:'Le château de sable', dDate:'19 JUIN 2026 · NOÉ, 5 ANS',
+      note:'Trois étages, un fossé tout autour, et une fierté immense quand la vague l\u2019a épargné.',
+      hasVoice:false },
+    { id:'noe-bulles', child:'noe', dot:'#f0dfae', isCitation:true, bg:'linear-gradient(135deg,#f0dfae,#f4cdb6)', dateLabel:'15 JUIN · NOÉ', meta:'Citation · dans le bain', photoCap:'CITATION · NOÉ',
+      title:'« encore bulles ! »', dDate:'15 JUIN 2026 · NOÉ, 5 ANS',
+      note:'Le mot d\u2019ordre de tous les bains, hurlé avec un sérieux de chef d\u2019orchestre.',
+      hasVoice:false },
+    { id:'noe-velo', child:'noe', dot:'#c08a72', bg:'linear-gradient(150deg,#c4ddcb,#bcd6ee)', dateLabel:'10 JUIN · NOÉ', meta:'Jalon · vélo · note vocale 0:06', photoCap:'PHOTO · NOÉ 5 ANS',
+      title:'Vélo sans roulettes', dDate:'10 JUIN 2026 · NOÉ, 5 ANS',
+      note:'Dix mètres en équilibre, puis la chute, puis le plus grand sourire du monde. « Encore ! »',
+      hasVoice:true, voiceLabel:'Noé crie victoire', voiceLen:'0:06', milestone:'Jalon · Vélo sans roulettes' },
+  ];
+
+  TREE = { lea:{ name:'Léa', activeId:'lea-pas', activeLabel:'Premiers pas', activeAge:'14 MOIS', taille:'78', souv:'142' },
+           noe:{ name:'Noé', activeId:'noe-velo', activeLabel:'Vélo !', activeAge:'5 ANS', taille:'112', souv:'168' } };
+
+  _stop(){ if(this._t){ clearInterval(this._t); this._t=null; } }
+  componentWillUnmount(){ this._stop(); }
+
+  openMemory(id){ this._stop(); this.setState({ openId:id, playing:false, progress:0, addOpen:false }); }
+  closeDetail(){ this._stop(); this.setState({ openId:null, playing:false, progress:0 }); }
+  pick(c){ this.setState({ child:c }); }
+  show(s){ this.setState({ screen:s }); }
+  openAdd(){ this.setState({ addOpen:true }); }
+  closeAdd(){ this.setState({ addOpen:false }); }
+  toggleLike(){ const id=this.state.openId; if(!id) return; this.setState(s=>({ liked:{...s.liked,[id]:!s.liked[id]} })); }
+  togglePlay(){
+    if(this.state.playing){ this._stop(); this.setState({ playing:false }); return; }
+    this.setState({ playing:true });
+    this._t=setInterval(()=>{
+      this.setState(s=>{ const p=s.progress+0.022; if(p>=1){ this._stop(); return { progress:1, playing:false }; } return { progress:p }; });
+    },90);
+  }
+
+  renderVals(){
+    const st=this.state, child=st.child;
+    const mem = this.DATA.filter(m=>m.child===child);
+    const surpriseRaw = mem.find(m=>m.surprise) || {};
+    const surprise = { ...surpriseRaw, open:()=>this.openMemory(surpriseRaw.id) };
+    const list = mem.filter(m=>!m.surprise).map(m=>({ ...m, isCitation:!!m.isCitation, open:()=>this.openMemory(m.id) }));
+
+    const d = this.DATA.find(m=>m.id===st.openId) || {};
+    const detailOpen = !!st.openId;
+    const heights=[10,24,14,28,18,26,12,22,10,16,24,14,20,12];
+    const onCount=Math.round(st.progress*heights.length);
+    const waveBars=heights.map((h,i)=>({ h:h+'px', color: i<onCount ? '#c08a72' : '#d8cebf' }));
+    const liked=!!st.liked[st.openId];
+
+    const tree=this.TREE[child];
+
+    return {
+      isFrise: st.screen==='frise',
+      isArbre: st.screen==='arbre',
+      showFrise: ()=>this.show('frise'),
+      showArbre: ()=>this.show('arbre'),
+      friseColor: st.screen==='frise' ? '#3b3340' : '#b3a591',
+      arbreColor: st.screen==='arbre' ? '#3b3340' : '#b3a591',
+
+      pickLea: ()=>this.pick('lea'),
+      pickNoe: ()=>this.pick('noe'),
+      leaBg: child==='lea' ? '#3b3340' : '#ece4d8',
+      leaText: child==='lea' ? '#ffffff' : '#6b6470',
+      noeBg: child==='noe' ? '#3b3340' : '#ece4d8',
+      noeText: child==='noe' ? '#ffffff' : '#6b6470',
+
+      surprise, list,
+
+      treeName: tree.name, activeLabel: tree.activeLabel, activeAge: tree.activeAge,
+      stTaille: tree.taille, stSouv: tree.souv,
+      openActive: ()=>this.openMemory(tree.activeId),
+
+      detailY: detailOpen ? '0%' : '102%',
+      detailPE: detailOpen ? 'auto' : 'none',
+      closeDetail: ()=>this.closeDetail(),
+      dBg: d.bg || 'linear-gradient(150deg,#c4ddcb,#c9c2ee)',
+      dPhotoCap: d.photoCap || '',
+      dDate: d.dDate || '',
+      dTitle: d.title || '',
+      dNote: d.note || '',
+      dHasVoice: !!d.hasVoice,
+      dVoiceLabel: d.voiceLabel || '',
+      dVoiceLen: d.voiceLen || '',
+      dHasMilestone: !!d.milestone,
+      dMilestone: d.milestone || '',
+      playing: st.playing,
+      paused: !st.playing,
+      togglePlay: ()=>this.togglePlay(),
+      waveBars,
+      toggleLike: ()=>this.toggleLike(),
+      heartFill: liked ? '#c08a72' : 'none',
+      heartColor: liked ? '#c08a72' : '#3b3340',
+
+      openAdd: ()=>this.openAdd(),
+      closeAdd: ()=>this.closeAdd(),
+      addOpacity: st.addOpen ? '1' : '0',
+      addPE: st.addOpen ? 'auto' : 'none',
+      addY: st.addOpen ? '0%' : '100%',
+    };
+  }
+}
+</script>
+</body>
+</html>

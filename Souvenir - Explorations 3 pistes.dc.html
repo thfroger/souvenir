@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Hanken+Grotesk:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{ font-family:'Hanken Grotesk', sans-serif; -webkit-font-smoothing:antialiased; }
+</style>
+</helmet>
+
+<div style="width:max-content; min-width:100%; min-height:100vh; box-sizing:border-box; padding:56px 64px 88px; background:#e7e3dd; color:#3b3340;">
+
+  <!-- ============ INTRO / SYSTÈME ============ -->
+  <div style="max-width:760px; margin-bottom:52px;">
+    <div style="font-family:'Geist Mono',monospace; font-size:11px; letter-spacing:.22em; color:#9a9088; margin-bottom:18px;">DIRECTION VISUELLE — 3 PISTES À COMPARER</div>
+    <div style="font-family:'Instrument Serif',serif; font-size:84px; line-height:.92; color:#3b3340; margin-bottom:22px;">souvenir<span style="color:#c08a72;">.</span></div>
+    <p style="font-size:17px; line-height:1.6; color:#6b6470; max-width:640px; margin:0 0 26px;">Un coffre-fort tendre où les parents déposent, puis <span style="font-family:'Instrument Serif',serif; font-style:italic; font-size:19px; color:#3b3340;">redécouvrent</span> les souvenirs de Léa &amp; Noé. La métaphore se décline en trois temps : une <b style="font-weight:600;">frise</b> qui se déroule, un <b style="font-weight:600;">souvenir surprise du jour</b> (« il y a 3 ans… »), et un <b style="font-weight:600;">arbre</b> qui grandit avec l'enfant.</p>
+    <div style="display:flex; gap:14px; flex-wrap:wrap;">
+      <div style="display:flex; align-items:center; gap:10px; padding:9px 15px; background:#fff; border-radius:100px; box-shadow:0 1px 3px rgba(0,0,0,.06);">
+        <span style="font-family:'Instrument Serif',serif; font-size:18px;">Aa</span>
+        <span style="font-size:12.5px; color:#7a7280;">Instrument Serif — titres</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px; padding:9px 15px; background:#fff; border-radius:100px; box-shadow:0 1px 3px rgba(0,0,0,.06);">
+        <span style="font-weight:600; font-size:15px;">Aa</span>
+        <span style="font-size:12.5px; color:#7a7280;">Hanken Grotesk — interface</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px; padding:9px 15px; background:#fff; border-radius:100px; box-shadow:0 1px 3px rgba(0,0,0,.06);">
+        <span style="width:16px;height:16px;border-radius:5px;background:#f1c8d4;"></span>
+        <span style="width:16px;height:16px;border-radius:5px;background:#c9c2ee;"></span>
+        <span style="width:16px;height:16px;border-radius:5px;background:#bcd6ee;"></span>
+        <span style="width:16px;height:16px;border-radius:5px;background:#c4ddcb;"></span>
+        <span style="width:16px;height:16px;border-radius:5px;background:#f0dfae;"></span>
+        <span style="font-size:12.5px; color:#7a7280; margin-left:4px;">pastels</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ ROW OF 3 PISTES ============ -->
+  <div style="display:flex; gap:64px; align-items:flex-start;">
+
+    <!-- ░░░░░░░░░░░░░░░░ PISTE 01 — FRISE ÉDITORIALE ░░░░░░░░░░░░░░░░ -->
+    <div style="flex:none; width:390px;">
+      <div style="font-family:'Geist Mono',monospace; font-size:11px; letter-spacing:.2em; color:#9a9088; margin-bottom:8px;">PISTE 01</div>
+      <div style="font-family:'Instrument Serif',serif; font-size:30px; line-height:1; margin-bottom:8px;">Frise éditoriale</div>
+      <p style="font-size:13.5px; color:#7a7280; line-height:1.5; margin:0 0 26px; max-width:330px;">Beaucoup d'air, papier crème, la frise se lit comme un magazine intime. Le souvenir respire.</p>
+
+      <!-- ACCUEIL A -->
+      <div style="width:390px; height:812px; border-radius:52px; background:#1c1a1e; padding:13px; box-shadow:0 30px 60px -20px rgba(60,40,60,.4); margin-bottom:14px;">
+        <div style="width:100%; height:100%; border-radius:40px; overflow:hidden; position:relative; background:#f7f2ec;">
+          <!-- island -->
+          <div style="position:absolute; top:11px; left:50%; transform:translateX(-50%); width:108px; height:30px; background:#000; border-radius:20px; z-index:30;"></div>
+          <!-- status -->
+          <div style="position:absolute; top:0; left:0; right:0; height:54px; display:flex; align-items:center; justify-content:space-between; padding:0 30px; font-size:14px; font-weight:600; color:#3b3340; z-index:20;">
+            <span>9:41</span>
+            <span style="display:flex; gap:5px; align-items:center;"><span style="width:18px;height:11px;border:1.5px solid #3b3340;border-radius:3px;display:inline-block;position:relative;"><span style="position:absolute;inset:1.5px;background:#3b3340;border-radius:1px;width:70%;"></span></span></span>
+          </div>
+          <!-- scroll content -->
+          <div style="position:absolute; top:54px; left:0; right:0; bottom:0; overflow:hidden; padding:8px 26px 110px;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:22px;">
+              <div>
+                <div style="font-family:'Geist Mono',monospace; font-size:11px; letter-spacing:.12em; color:#a89c8e; margin-bottom:4px;">MARDI 22 JUIN</div>
+                <div style="font-family:'Instrument Serif',serif; font-size:32px; line-height:1;">Bonjour, Camille</div>
+              </div>
+              <div style="width:40px; height:40px; border-radius:50%; background:#ece4d8; display:flex; align-items:center; justify-content:center; font-size:18px;">✿</div>
+            </div>
+            <!-- child switcher -->
+            <div style="display:flex; gap:10px; margin-bottom:26px;">
+              <div style="display:flex; align-items:center; gap:8px; padding:6px 14px 6px 6px; background:#3b3340; border-radius:100px;">
+                <span style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#f1c8d4,#c9c2ee);"></span>
+                <span style="color:#fff; font-size:13.5px; font-weight:600;">Léa</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:8px; padding:6px 14px 6px 6px; background:#ece4d8; border-radius:100px;">
+                <span style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#bcd6ee,#c4ddcb);"></span>
+                <span style="color:#6b6470; font-size:13.5px; font-weight:600;">Noé</span>
+              </div>
+              <div style="width:40px;height:40px;border-radius:50%;border:1.5px dashed #cabfae; display:flex; align-items:center; justify-content:center; color:#b3a591; font-size:20px;">+</div>
+            </div>
+            <!-- surprise card -->
+            <div style="border-radius:26px; overflow:hidden; background:#fff; box-shadow:0 14px 30px -16px rgba(80,50,60,.28); margin-bottom:28px;">
+              <div style="position:relative; height:188px; background:linear-gradient(135deg,#f4cdb6,#f1c8d4);">
+                <div style="position:absolute; inset:0; background:repeating-linear-gradient(135deg, rgba(255,255,255,.16) 0 14px, rgba(255,255,255,0) 14px 28px);"></div>
+                <div style="position:absolute; top:14px; left:14px; padding:6px 12px; background:rgba(28,26,30,.5); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); border-radius:100px; color:#fff; font-family:'Geist Mono',monospace; font-size:10px; letter-spacing:.1em;">IL Y A 3 ANS · AUJOURD'HUI</div>
+                <span style="position:absolute; bottom:12px; right:14px; font-family:'Geist Mono',monospace; font-size:10px; color:rgba(255,255,255,.85);">PHOTO · NOÉ 18 MOIS</span>
+              </div>
+              <div style="padding:18px 20px 20px;">
+                <div style="font-family:'Instrument Serif',serif; font-size:24px; line-height:1.05; margin-bottom:6px;">Le bain de mousse interminable</div>
+                <p style="font-size:13.5px; color:#7a7280; line-height:1.5; margin:0;">« encore bulles ! » — Noé refusait de sortir de l'eau ce soir-là.</p>
+              </div>
+            </div>
+            <!-- timeline -->
+            <div style="font-family:'Geist Mono',monospace; font-size:11px; letter-spacing:.14em; color:#a89c8e; margin-bottom:16px;">CETTE SEMAINE</div>
+            <div style="position:relative; padding-left:26px;">
+              <div style="position:absolute; left:5px; top:6px; bottom:10px; width:1.5px; background:#e2d8c9;"></div>
+              <!-- entry -->
+              <div style="position:relative; margin-bottom:24px;">
+                <span style="position:absolute; left:-26px; top:4px; width:11px; height:11px; border-radius:50%; background:#c08a72; border:2px solid #f7f2ec;"></span>
+                <div style="font-family:'Geist Mono',monospace; font-size:10px; color:#b3a591; margin-bottom:8px;">20 JUIN · LÉA</div>
+                <div style="display:flex; gap:14px;">
+                  <div style="flex:none; width:66px; height:66px; border-radius:16px; background:linear-gradient(135deg,#c4ddcb,#bcd6ee);"></div>
+                  <div>
+                    <div style="font-family:'Instrument Serif',serif; font-size:19px; line-height:1.1; margin-bottom:3px;">Premiers pas dans l'herbe</div>
+                    <div style="font-size:12.5px; color:#9a9088;">Photo · Note vocale 0:12</div>
+                  </div>
+                </div>
+              </div>
+              <div style="position:relative;">
+                <span style="position:absolute; left:-26px; top:4px; width:11px; height:11px; border-radius:50%; background:#c9c2ee; border:2px solid #f7f2ec;"></span>
+                <div style="font-family:'Geist Mono',monospace; font-size:10px; color:#b3a591; margin-bottom:8px;">18 JUIN · LÉA</div>
+                <div style="display:flex; gap:14px;">
+                  <div style="flex:none; width:66px; height:66px; border-radius:16px; background:linear-gradient(135deg,#f0dfae,#f4cdb6); display:flex; align-items:center; justify-content:center; font-size:24px;">“”</div>
+                  <div>
+                    <div style="font-family:'Instrument Serif',serif; font-size:19px; line-height:1.1; margin-bottom:3px;">« La lune me suit ! »</div>
+                    <div style="font-size:12.5px; color:#9a9088;">Citation · en voiture</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- tab bar -->
+          <div style="position:absolute; bottom:0; left:0; right:0; height:96px; background:linear-gradient(to top, #f7f2ec 55%, rgba(247,242,236,0)); display:flex; align-items:center; justify-content:center; z-index:25;">
+            <div style="display:flex; align-items:center; gap:28px; padding:13px 24px; background:#fff; border-radius:100px; box-shadow:0 10px 30px -8px rgba(80,50,60,.22);">
+              <span style="font-family:'Instrument Serif',serif; font-size:16px; color:#3b3340;">Frise</span>
+              <span style="width:50px; height:50px; border-radius:50%; background:#3b3340; color:#fff; display:flex; align-items:center; justify-content:center; font-size:26px; font-weight:300;">+</span>
+              <span style="font-size:14px; color:#b3a591;">Arbre</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="text-align:center; font-size:12.5px; color:#9a9088; margin-bottom:34px;">Accueil — frise &amp; surprise du jour</div>
+
+      <!-- DÉTAIL A (immersif) -->
+      <div style="width:390px; height:812px; border-radius:52px; background:#1c1a1e; padding:13px; box-shadow:0 30px 60px -20px rgba(60,40,60,.4);">
+        <div style="width:100%; height:100%; border-radius:40px; overflow:hidden; position:relative; background:#f7f2ec;">
+          <div style="position:absolute; top:11px; left:50%; transform:translateX(-50%); width:108px; height:30px; background:#000; border-radius:20px; z-index:30;"></div>
+          <!-- big photo -->
+          <div style="position:relative; height:430px; background:linear-gradient(150deg,#c4ddcb,#bcd6ee 60%,#c9c2ee);">
+            <div style="position:absolute; inset:0; background:repeating-linear-gradient(135deg, rgba(255,255,255,.14) 0 16px, rgba(255,255,255,0) 16px 32px);"></div>
+            <div style="position:absolute; top:54px; left:24px;">
+              <div style="width:38px; height:38px; border-radius:50%; background:rgba(255,255,255,.55); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); display:flex; align-items:center; justify-content:center; font-size:18px; color:#3b3340;">‹</div>
+            </div>
+            <span style="position:absolute; bottom:16px; right:18px; font-family:'Geist Mono',monospace; font-size:10px; color:rgba(255,255,255,.9);">PHOTO · LÉA 14 MOIS</span>
+          </div>
+          <!-- editorial body -->
+          <div style="position:absolute; top:398px; left:0; right:0; bottom:0; background:#f7f2ec; border-radius:32px 32px 0 0; padding:30px 28px;">
+            <div style="font-family:'Geist Mono',monospace; font-size:11px; letter-spacing:.14em; color:#b3a591; margin-bottom:12px;">14 OCT. 2023 · LÉA, 14 MOIS</div>
+            <div style="font-family:'Instrument Serif',serif; font-size:38px; line-height:1.02; margin-bottom:18px;">Premiers pas<br>dans l'herbe</div>
+            <p style="font-size:15px; line-height:1.62; color:#5e5862; margin:0 0 24px;">Tu t'es lâchée du banc et tu as fait trois pas vers moi en riant aux éclats. Le soleil était bas, l'herbe te chatouillait les orteils.</p>
+            <!-- voice -->
+            <div style="display:flex; align-items:center; gap:14px; padding:14px 18px; background:#fff; border-radius:20px; box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:14px;">
+              <span style="width:42px; height:42px; border-radius:50%; background:#c08a72; color:#fff; display:flex; align-items:center; justify-content:center; font-size:15px;">▶</span>
+              <span style="display:flex; align-items:center; gap:3px; flex:1;">
+                <span style="width:3px;height:10px;background:#d8cebf;border-radius:2px;"></span><span style="width:3px;height:22px;background:#c08a72;border-radius:2px;"></span><span style="width:3px;height:14px;background:#c08a72;border-radius:2px;"></span><span style="width:3px;height:28px;background:#c08a72;border-radius:2px;"></span><span style="width:3px;height:18px;background:#d8cebf;border-radius:2px;"></span><span style="width:3px;height:24px;background:#d8cebf;border-radius:2px;"></span><span style="width:3px;height:12px;background:#d8cebf;border-radius:2px;"></span><span style="width:3px;height:20px;background:#d8cebf;border-radius:2px;"></span><span style="width:3px;height:10px;background:#d8cebf;border-radius:2px;"></span><span style="width:3px;height:16px;background:#d8cebf;border-radius:2px;"></span>
+              </span>
+              <span style="font-family:'Geist Mono',monospace; font-size:11px; color:#9a9088;">0:12</span>
+            </div>
+            <div style="display:flex; gap:9px;">
+              <span style="padding:8px 14px; background:#ece4d8; border-radius:100px; font-size:12.5px; color:#6b6470;">🌱 Jalon · Premiers pas</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="text-align:center; font-size:12.5px; color:#9a9088; margin-top:14px;">Souvenir — vue immersive</div>
+    </div>
+
+    <!-- ░░░░░░░░░░░░░░░░ PISTE 02 — LIQUID GLASS ░░░░░░░░░░░░░░░░ -->
+    <div style="flex:none; width:390px;">
+      <div style="font-family:'Geist Mono',monospace; font-size:11px; letter-spacing:.2em; color:#9a9088; margin-bottom:8px;">PISTE 02</div>
+      <div style="font-family:'Instrument Serif',serif; font-size:30px; line-height:1; margin-bottom:8px;">Liquid Glass</div>
+      <p style="font-size:13.5px; color:#7a7280; line-height:1.5; margin:0 0 26px; max-width:330px;">Des panneaux de verre dépoli flottent sur la photo. Profondeur, lumière, iOS 26. Le souvenir est l'écran entier.</p>
+
+      <!-- ACCUEIL B -->
+      <div style="width:390px; height:812px; border-radius:52px; background:#1c1a1e; padding:13px; box-shadow:0 30px 60px -20px rgba(60,40,60,.4); margin-bottom:14px;">
+        <div style="width:100%; height:100%; border-radius:40px; overflow:hidden; position:relative; background:linear-gradient(165deg,#f3d9e4 0%,#e2d4f2 38%,#d2e2f4 70%,#dceae0 100%);">
+          <!-- soft blobs -->
+          <div style="position:absolute; top:-40px; right:-30px; width:200px; height:200px; border-radius:50%; background:radial-gradient(circle,#f4c9d8,transparent 70%); filter:blur(8px);"></div>
+          <div style="position:absolute; top:280px; left:-60px; width:220px; height:220px; border-radius:50%; background:radial-gradient(circle,#c6c0f0,transparent 70%); filter:blur(8px);"></div>
+          <div style="position:absolute; bottom:120px; right:-50px; width:200px; height:200px; border-radius:50%; background:radial-gradient(circle,#bcdcc9,transparent 70%); filter:blur(8px);"></div>
+
+          <div style="position:absolute; top:11px; left:50%; transform:translateX(-50%); width:108px; height:30px; background:#000; border-radius:20px; z-index:30;"></div>
+          <div style="position:absolute; top:0; left:0; right:0; height:54px; display:flex; align-items:center; justify-content:space-between; padding:0 30px; font-size:14px; font-weight:600; color:#3b3340; z-index:20;">
+            <span>9:41</span>
+            <span style="width:18px;height:11px;border:1.5px solid #3b3340;border-radius:3px;display:inline-block;position:relative;"><span style="position:absolute;inset:1.5px;background:#3b3340;border-radius:1px;width:70%;"></span></span>
+          </div>
+
+          <div style="position:absolute; top:54px; left:0; right:0; bottom:0; overflow:hidden; padding:10px 22px 120px;">
+            <!-- glass segmented child switcher -->
+            <div style="display:flex; gap:6px; padding:6px; background:rgba(255,255,255,.42); backdrop-filter:blur(20px) saturate(1.5); -webkit-backdrop-filter:blur(20px) saturate(1.5); border:1px solid rgba(255,255,255,.6); border-radius:100px; box-shadow:0 6px 18px rgba(90,60,100,.12); margin-bottom:24px;">
+              <div style="flex:1; display:flex; align-items:center; justify-content:center; gap:8px; padding:10px; background:#fff; border-radius:100px; box-shadow:0 2px 6px rgba(90,60,100,.15);">
+                <span style="width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#f1c8d4,#c9c2ee);"></span><span style="font-size:14px;font-weight:600;color:#3b3340;">Léa</span>
+              </div>
+              <div style="flex:1; display:flex; align-items:center; justify-content:center; gap:8px; padding:10px;">
+                <span style="width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#bcd6ee,#c4ddcb);"></span><span style="font-size:14px;font-weight:500;color:#6b6470;">Noé</span>
+              </div>
+            </div>
+
+            <div style="font-family:'Instrument Serif',serif; font-size:30px; line-height:1; color:#3b3340; margin-bottom:18px;">Aujourd'hui dans<br>vos souvenirs</div>
+
+            <!-- big surprise glass card over photo -->
+            <div style="position:relative; height:300px; border-radius:30px; overflow:hidden; margin-bottom:20px; box-shadow:0 18px 40px -18px rgba(90,60,100,.4);">
+              <div style="position:absolute; inset:0; background:linear-gradient(150deg,#f4cdb6,#c9c2ee);"></div>
+              <div style="position:absolute; inset:0; background:repeating-linear-gradient(135deg, rgba(255,255,255,.14) 0 15px, rgba(255,255,255,0) 15px 30px);"></div>
+              <div style="position:absolute; top:16px; left:16px; padding:7px 13px; background:rgba(255,255,255,.32); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); border:1px solid rgba(255,255,255,.5); border-radius:100px; font-family:'Geist Mono',monospace; font-size:10px; letter-spacing:.1em; color:#3b3340;">IL Y A 3 ANS</div>
+              <!-- bottom glass panel -->
+              <div style="position:absolute; left:12px; right:12px; bottom:12px; padding:16px 18px; background:rgba(255,255,255,.5); backdrop-filter:blur(24px) saturate(1.6); -webkit-backdrop-filter:blur(24px) saturate(1.6); border:1px solid rgba(255,255,255,.65); border-radius:22px; box-shadow:0 8px 24px rgba(90,60,100,.18);">
+                <div style="font-family:'Instrument Serif',serif; font-size:22px; line-height:1.05; color:#3b3340; margin-bottom:4px;">Le bain de mousse</div>
+                <div style="font-size:12.5px; color:#6b6470;">Noé, 18 mois · « encore bulles ! »</div>
+              </div>
+            </div>
+
+            <!-- quick add — glass circles -->
+            <div style="display:flex; gap:12px; margin-bottom:22px;">
+              <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:8px;">
+                <div style="width:100%; aspect-ratio:1; border-radius:22px; background:rgba(255,255,255,.46); backdrop-filter:blur(18px) saturate(1.5); -webkit-backdrop-filter:blur(18px) saturate(1.5); border:1px solid rgba(255,255,255,.6); display:flex; align-items:center; justify-content:center; font-size:24px; box-shadow:0 6px 16px rgba(90,60,100,.1);">📷</div>
+                <span style="font-size:11.5px; color:#6b6470;">Photo</span>
+              </div>
+              <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:8px;">
+                <div style="width:100%; aspect-ratio:1; border-radius:22px; background:rgba(255,255,255,.46); backdrop-filter:blur(18px) saturate(1.5); -webkit-backdrop-filter:blur(18px) saturate(1.5); border:1px solid rgba(255,255,255,.6); display:flex; align-items:center; justify-content:center; font-size:24px; box-shadow:0 6px 16px rgba(90,60,100,.1);">🎙️</div>
+                <span style="font-size:11.5px; color:#6b6470;">Voix</span>
+              </div>
+              <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:8px;">
+                <div style="width:100%; aspect-ratio:1; border-radius:22px; background:rgba(255,255,255,.46); backdrop-filter:blur(18px) saturate(1.5); -webkit-backdrop-filter:blur(18px) saturate(1.5); border:1px solid rgba(255,255,255,.6); display:flex; align-items:center; justify-content:center; font-family:'Instrument Serif',serif; font-size:26px; color:#3b3340; box-shadow:0 6px 16px rgba(90,60,100,.1);">“</div>
+                <span style="font-size:11.5px; color:#6b6470;">Citation</span>
+              </div>
+            </div>
+
+            <div style="font-family:'Geist Mono',monospace; font-size:11px; letter-spacing:.12em; color:#8a7f94; margin-bottom:12px;">RÉCEMMENT</div>
+            <div style="display:flex; gap:12px;">
+              <div style="flex:1; height:96px; border-radius:20px; background:linear-gradient(135deg,#c4ddcb,#bcd6ee); position:relative; overflow:hidden;"><span style="position:absolute; bottom:8px; left:10px; font-size:11px; color:rgba(59,51,64,.7); font-weight:600;">Premiers pas</span></div>
+              <div style="flex:1; height:96px; border-radius:20px; background:linear-gradient(135deg,#f0dfae,#f4cdb6); position:relative; overflow:hidden;"><span style="position:absolute; bottom:8px; left:10px; font-size:11px; color:rgba(59,51,64,.7); font-weight:600;">« La lune… »</span></div>
+            </div>
+          </div>
+
+          <!-- glass tab bar -->
+          <div style="position:absolute; bottom:22px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:24px; padding:13px 22px; background:rgba(255,255,255,.5); backdrop-filter:blur(26px) saturate(1.6); -webkit-backdrop-filter:blur(26px) saturate(1.6); border:1px solid rgba(255,255,255,.65); border-radius:100px; box-shadow:0 12px 30px rgba(90,60,100,.22); z-index:25;">
+            <span style="font-size:22px;">🏠</span>
+            <span style="width:48px; height:48px; border-radius:50%; background:#3b3340; color:#fff; display:flex; align-items:center; justify-content:center; font-size:24px; font-weight:300;">+</span>
+            <span style="font-size:22px; opacity:.5;">🌳</span>
+          </div>
+        </div>
+      </div>
+      <div style="text-align:center; font-size:12.5px; color:#9a9088; margin-bottom:34px;">Accueil — verre &amp; flou de profondeur</div>
+
+      <!-- DÉTAIL B (immersif full-bleed glass) -->
+      <div style="width:390px; height:812px; border-radius:52px; background:#1c1a1e; padding:13px; box-shadow:0 30px 60px -20px rgba(60,40,60,.4);">
+        <div style="width:100%; height:100%; border-radius:40px; overflow:hidden; position:relative;">
+          <!-- full bleed photo -->
+          <div style="position:absolute; inset:0; background:linear-gradient(155deg,#f4cdb6 0%,#f1c8d4 40%,#c9c2ee 100%);"></div>
+          <div style="position:absolute; inset:0; background:repeating-linear-gradient(135deg, rgba(255,255,255,.12) 0 18px, rgba(255,255,255,0) 18px 36px);"></div>
+          <div style="position:absolute; inset:0; background:linear-gradient(to bottom, rgba(40,25,45,.25) 0%, transparent 30%, transparent 55%, rgba(40,25,45,.4) 100%);"></div>
+          <span style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-family:'Geist Mono',monospace; font-size:11px; color:rgba(255,255,255,.7);">PHOTO PLEIN ÉCRAN · LÉA</span>
+
+          <div style="position:absolute; top:11px; left:50%; transform:translateX(-50%); width:108px; height:30px; background:#000; border-radius:20px; z-index:30;"></div>
+          <div style="position:absolute; top:0; left:0; right:0; height:54px; display:flex; align-items:center; justify-content:space-between; padding:0 30px; font-size:14px; font-weight:600; color:#fff; z-index:20;">
+            <span>9:41</span>
+            <span style="width:18px;height:11px;border:1.5px solid #fff;border-radius:3px;display:inline-block;position:relative;"><span style="position:absolute;inset:1.5px;background:#fff;border-radius:1px;width:70%;"></span></span>
+          </div>
+
+          <!-- top glass bar -->
+          <div style="position:absolute; top:62px; left:18px; right:18px; display:flex; align-items:center; justify-content:space-between; z-index:20;">
+            <div style="width:40px; height:40px; border-radius:50%; background:rgba(255,255,255,.28); backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px); border:1px solid rgba(255,255,255,.4); display:flex; align-items:center; justify-content:center; font-size:18px; color:#fff;">‹</div>
+            <div style="padding:9px 16px; background:rgba(255,255,255,.28); backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px); border:1px solid rgba(255,255,255,.4); border-radius:100px; font-family:'Geist Mono',monospace; font-size:11px; color:#fff; letter-spacing:.06em;">14 OCT. 2023</div>
+            <div style="width:40px; height:40px; border-radius:50%; background:rgba(255,255,255,.28); backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px); border:1px solid rgba(255,255,255,.4); display:flex; align-items:center; justify-content:center; font-size:18px; color:#fff;">♡</div>
+          </div>
+
+          <!-- bottom big glass panel -->
+          <div style="position:absolute; left:14px; right:14px; bottom:16px; padding:24px 22px; background:rgba(255,255,255,.46); backdrop-filter:blur(30px) saturate(1.7); -webkit-backdrop-filter:blur(30px) saturate(1.7); border:1px solid rgba(255,255,255,.6); border-radius:30px; box-shadow:0 14px 40px rgba(60,40,70,.3); z-index:20;">
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+              <span style="padding:5px 11px; background:rgba(255,255,255,.5); border:1px solid rgba(255,255,255,.6); border-radius:100px; font-size:11.5px; color:#3b3340; font-weight:600;">🌱 Premiers pas</span>
+              <span style="font-family:'Geist Mono',monospace; font-size:10px; color:#6b6470;">LÉA · 14 MOIS</span>
+            </div>
+            <div style="font-family:'Instrument Serif',serif; font-size:30px; line-height:1.02; color:#3b3340; margin-bottom:10px;">Premiers pas dans l'herbe</div>
+            <p style="font-size:14px; line-height:1.55; color:#534d57; margin:0 0 18px;">Trois pas vers moi, en riant aux éclats. L'herbe te chatouillait les orteils.</p>
+            <!-- glass voice player -->
+            <div style="display:flex; align-items:center; gap:13px; padding:12px 14px; background:rgba(255,255,255,.5); border:1px solid rgba(255,255,255,.6); border-radius:18px;">
+              <span style="width:40px; height:40px; border-radius:50%; background:#3b3340; color:#fff; display:flex; align-items:center; justify-content:center; font-size:14px;">▶</span>
+              <span style="display:flex; align-items:center; gap:3px; flex:1;">
+                <span style="width:3px;height:9px;background:rgba(59,51,64,.3);border-radius:2px;"></span><span style="width:3px;height:20px;background:#3b3340;border-radius:2px;"></span><span style="width:3px;height:13px;background:#3b3340;border-radius:2px;"></span><span style="width:3px;height:26px;background:#3b3340;border-radius:2px;"></span><span style="width:3px;height:16px;background:rgba(59,51,64,.3);border-radius:2px;"></span><span style="width:3px;height:22px;background:rgba(59,51,64,.3);border-radius:2px;"></span><span style="width:3px;height:11px;background:rgba(59,51,64,.3);border-radius:2px;"></span><span style="width:3px;height:18px;background:rgba(59,51,64,.3);border-radius:2px;"></span>
+              </span>
+              <span style="font-family:'Geist Mono',monospace; font-size:11px; color:#6b6470;">0:12</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="text-align:center; font-size:12.5px; color:#9a9088; margin-top:14px;">Souvenir — vue immersive</div>
+    </div>
+
+    <!-- ░░░░░░░░░░░░░░░░ PISTE 03 — JARDIN QUI GRANDIT ░░░░░░░░░░░░░░░░ -->
+    <div style="flex:none; width:390px;">
+      <div style="font-family:'Geist Mono',monospace; font-size:11px; letter-spacing:.2em; color:#9a9088; margin-bottom:8px;">PISTE 03</div>
+      <div style="font-family:'Instrument Serif',serif; font-size:30px; line-height:1; margin-bottom:8px;">Jardin qui grandit</div>
+      <p style="font-size:13.5px; color:#7a7280; line-height:1.5; margin:0 0 26px; max-width:330px;">Chaque enfant a son arbre. Les jalons fleurissent en boutons que l'on cueille pour rouvrir un souvenir.</p>
+
+      <!-- ACCUEIL C -->
+      <div style="width:390px; height:812px; border-radius:52px; background:#1c1a1e; padding:13px; box-shadow:0 30px 60px -20px rgba(60,40,60,.4); margin-bottom:14px;">
+        <div style="width:100%; height:100%; border-radius:40px; overflow:hidden; position:relative; background:linear-gradient(180deg,#eaf0f4 0%,#f3ece2 55%,#eef0e6 100%);">
+          <div style="position:absolute; top:11px; left:50%; transform:translateX(-50%); width:108px; height:30px; background:#000; border-radius:20px; z-index:30;"></div>
+          <div style="position:absolute; top:0; left:0; right:0; height:54px; display:flex; align-items:center; justify-content:space-between; padding:0 30px; font-size:14px; font-weight:600; color:#3b3340; z-index:20;">
+            <span>9:41</span>
+            <span style="width:18px;height:11px;border:1.5px solid #3b3340;border-radius:3px;display:inline-block;position:relative;"><span style="position:absolute;inset:1.5px;background:#3b3340;border-radius:1px;width:70%;"></span></span>
+          </div>
+
+          <div style="position:absolute; top:54px; left:0; right:0; bottom:0; padding:16px 24px 110px;">
+            <div style="text-align:center; margin-bottom:6px;">
+              <div style="font-family:'Geist Mono',monospace; font-size:10px; letter-spacing:.16em; color:#a8a08e; margin-bottom:6px;">L'ARBRE DE</div>
+              <div style="font-family:'Instrument Serif',serif; font-size:30px; line-height:1;">Léa <span style="color:#bbb0a0;">&amp;</span> Noé</div>
+            </div>
+
+            <!-- the tree (simple shapes) -->
+            <div style="position:relative; height:420px; margin:6px 0;">
+              <!-- ground -->
+              <div style="position:absolute; bottom:30px; left:50%; transform:translateX(-50%); width:240px; height:30px; border-radius:50%; background:radial-gradient(ellipse,#d9e0c9,transparent 70%);"></div>
+              <!-- trunk -->
+              <div style="position:absolute; bottom:42px; left:50%; transform:translateX(-50%); width:26px; height:150px; border-radius:14px; background:linear-gradient(90deg,#c9b29c,#b89c83);"></div>
+              <!-- branches -->
+              <div style="position:absolute; bottom:140px; left:50%; width:70px; height:13px; border-radius:10px; background:#c2ab95; transform:translateX(-100%) rotate(-32deg); transform-origin:right;"></div>
+              <div style="position:absolute; bottom:155px; left:50%; width:70px; height:13px; border-radius:10px; background:#c2ab95; transform:rotate(32deg); transform-origin:left;"></div>
+              <!-- foliage circles -->
+              <div style="position:absolute; top:6px; left:50%; transform:translateX(-50%); width:170px; height:170px; border-radius:50%; background:radial-gradient(circle at 40% 35%,#cfe3cd,#bcd6b8);"></div>
+              <div style="position:absolute; top:46px; left:18px; width:130px; height:130px; border-radius:50%; background:radial-gradient(circle at 40% 35%,#dcc9ea,#c9c2ee); opacity:.92;"></div>
+              <div style="position:absolute; top:54px; right:14px; width:140px; height:140px; border-radius:50%; background:radial-gradient(circle at 40% 35%,#f6d2bd,#f1c8d4); opacity:.92;"></div>
+              <div style="position:absolute; top:120px; left:50%; transform:translateX(-50%); width:120px; height:120px; border-radius:50%; background:radial-gradient(circle at 40% 35%,#f3e6b8,#f0dfae); opacity:.85;"></div>
+              <!-- blossoms = milestones -->
+              <div style="position:absolute; top:78px; left:74px; width:34px; height:34px; border-radius:50%; background:#fff; box-shadow:0 4px 12px rgba(120,90,100,.22); display:flex; align-items:center; justify-content:center; font-size:15px; z-index:5;">🦷</div>
+              <div style="position:absolute; top:60px; right:78px; width:34px; height:34px; border-radius:50%; background:#fff; box-shadow:0 4px 12px rgba(120,90,100,.22); display:flex; align-items:center; justify-content:center; font-size:15px; z-index:5;">👣</div>
+              <div style="position:absolute; top:150px; left:120px; width:34px; height:34px; border-radius:50%; background:#fff; box-shadow:0 4px 12px rgba(120,90,100,.22); display:flex; align-items:center; justify-content:center; font-size:14px; z-index:5;">💬</div>
+              <!-- floating surprise leaf -->
+              <div style="position:absolute; top:8px; right:-4px; padding:8px 13px; background:#fff; border-radius:16px 16px 16px 4px; box-shadow:0 8px 20px rgba(120,90,100,.2); z-index:6;">
+                <div style="font-family:'Geist Mono',monospace; font-size:9px; color:#b3a591; letter-spacing:.08em;">IL Y A 3 ANS</div>
+                <div style="font-family:'Instrument Serif',serif; font-size:15px; line-height:1; color:#3b3340;">Le bain ✨</div>
+              </div>
+            </div>
+
+            <!-- growth stat glass card -->
+            <div style="display:flex; gap:12px;">
+              <div style="flex:1; padding:14px 16px; background:rgba(255,255,255,.55); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); border:1px solid rgba(255,255,255,.7); border-radius:20px; box-shadow:0 6px 16px rgba(90,80,60,.08);">
+                <div style="font-family:'Geist Mono',monospace; font-size:10px; color:#a8a08e; margin-bottom:6px;">LÉA · TAILLE</div>
+                <div style="font-family:'Instrument Serif',serif; font-size:26px; line-height:1;">78 <span style="font-size:15px; color:#9a9088;">cm</span></div>
+              </div>
+              <div style="flex:1; padding:14px 16px; background:rgba(255,255,255,.55); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); border:1px solid rgba(255,255,255,.7); border-radius:20px; box-shadow:0 6px 16px rgba(90,80,60,.08);">
+                <div style="font-family:'Geist Mono',monospace; font-size:10px; color:#a8a08e; margin-bottom:6px;">SOUVENIRS</div>
+                <div style="font-family:'Instrument Serif',serif; font-size:26px; line-height:1;">142 <span style="font-size:15px; color:#9a9088;">éclats</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div style="position:absolute; bottom:0; left:0; right:0; height:96px; background:linear-gradient(to top,#eef0e6 55%,rgba(238,240,230,0)); display:flex; align-items:center; justify-content:center; z-index:25;">
+            <div style="display:flex; align-items:center; gap:26px; padding:13px 24px; background:#fff; border-radius:100px; box-shadow:0 10px 30px -8px rgba(90,80,60,.2);">
+              <span style="font-size:13px; color:#b3a591;">Frise</span>
+              <span style="width:50px; height:50px; border-radius:50%; background:#3b3340; color:#fff; display:flex; align-items:center; justify-content:center; font-size:26px; font-weight:300;">+</span>
+              <span style="font-family:'Instrument Serif',serif; font-size:16px; color:#3b3340;">Arbre</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="text-align:center; font-size:12.5px; color:#9a9088; margin-bottom:34px;">Accueil — l'arbre &amp; ses boutons-jalons</div>
+
+      <!-- DÉTAIL C (immersif organique) -->
+      <div style="width:390px; height:812px; border-radius:52px; background:#1c1a1e; padding:13px; box-shadow:0 30px 60px -20px rgba(60,40,60,.4);">
+        <div style="width:100%; height:100%; border-radius:40px; overflow:hidden; position:relative; background:linear-gradient(180deg,#f3ece2,#eef0e6);">
+          <div style="position:absolute; top:11px; left:50%; transform:translateX(-50%); width:108px; height:30px; background:#000; border-radius:20px; z-index:30;"></div>
+          <div style="position:absolute; top:0; left:0; right:0; height:54px; display:flex; align-items:center; justify-content:space-between; padding:0 30px; font-size:14px; font-weight:600; color:#3b3340; z-index:20;">
+            <span>9:41</span>
+            <span style="width:18px;height:11px;border:1.5px solid #3b3340;border-radius:3px;display:inline-block;position:relative;"><span style="position:absolute;inset:1.5px;background:#3b3340;border-radius:1px;width:70%;"></span></span>
+          </div>
+
+          <div style="position:absolute; top:54px; left:0; right:0; bottom:0; padding:14px 22px 28px; display:flex; flex-direction:column;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;">
+              <div style="width:38px; height:38px; border-radius:50%; background:#fff; box-shadow:0 2px 8px rgba(90,80,60,.12); display:flex; align-items:center; justify-content:center; font-size:18px; color:#3b3340;">‹</div>
+              <div style="font-family:'Geist Mono',monospace; font-size:10px; letter-spacing:.1em; color:#a8a08e;">CUEILLI SUR L'ARBRE DE LÉA</div>
+              <div style="width:38px; height:38px;"></div>
+            </div>
+
+            <!-- arched organic photo frame -->
+            <div style="position:relative; height:360px; border-radius:160px 160px 32px 32px; overflow:hidden; background:linear-gradient(155deg,#c4ddcb,#c9c2ee); box-shadow:0 18px 40px -16px rgba(100,80,110,.35); margin-bottom:6px;">
+              <div style="position:absolute; inset:0; background:repeating-linear-gradient(135deg, rgba(255,255,255,.14) 0 16px, rgba(255,255,255,0) 16px 32px);"></div>
+              <!-- little blossom badge -->
+              <div style="position:absolute; top:18px; left:50%; transform:translateX(-50%); padding:6px 14px; background:rgba(255,255,255,.7); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); border-radius:100px; font-size:12px; color:#3b3340; font-weight:600;">👣 Premiers pas</div>
+              <span style="position:absolute; bottom:16px; left:50%; transform:translateX(-50%); font-family:'Geist Mono',monospace; font-size:10px; color:rgba(255,255,255,.85);">PHOTO · LÉA 14 MOIS</span>
+            </div>
+
+            <div style="text-align:center; margin-top:14px; flex:1;">
+              <div style="font-family:'Geist Mono',monospace; font-size:10px; letter-spacing:.14em; color:#a8a08e; margin-bottom:8px;">14 OCT. 2023 · 14 MOIS</div>
+              <div style="font-family:'Instrument Serif',serif; font-size:30px; line-height:1.04; margin-bottom:12px;">Premiers pas dans l'herbe</div>
+              <p style="font-size:14px; line-height:1.55; color:#5e5862; margin:0 auto 18px; max-width:280px;">Trois pas vers moi, en riant. L'herbe te chatouillait les orteils.</p>
+              <!-- pill voice -->
+              <div style="display:inline-flex; align-items:center; gap:10px; padding:10px 18px 10px 10px; background:#fff; border-radius:100px; box-shadow:0 4px 14px rgba(90,80,60,.12);">
+                <span style="width:34px; height:34px; border-radius:50%; background:#c08a72; color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px;">▶</span>
+                <span style="display:flex; align-items:center; gap:2.5px;">
+                  <span style="width:3px;height:9px;background:#dcd0c2;border-radius:2px;"></span><span style="width:3px;height:18px;background:#c08a72;border-radius:2px;"></span><span style="width:3px;height:12px;background:#c08a72;border-radius:2px;"></span><span style="width:3px;height:22px;background:#c08a72;border-radius:2px;"></span><span style="width:3px;height:14px;background:#dcd0c2;border-radius:2px;"></span><span style="width:3px;height:18px;background:#dcd0c2;border-radius:2px;"></span>
+                </span>
+                <span style="font-family:'Geist Mono',monospace; font-size:11px; color:#9a9088;">la voix de Léa · 0:12</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="text-align:center; font-size:12.5px; color:#9a9088; margin-top:14px;">Souvenir — vue immersive</div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+</body>
+</html>
