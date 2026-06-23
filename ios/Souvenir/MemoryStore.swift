@@ -209,9 +209,10 @@ final class MemoryStore: ObservableObject {
         add(childID: childID, kind: .measure, title: value.trimmingCharacters(in: .whitespacesAndNewlines), note: nil)
     }
 
-    func addPhoto(childID: UUID, imageData: Data) {
+    func addPhoto(childID: UUID, imageData: Data, title: String = "Photo") {
         guard let stripped = ImageTools.stripExifJPEG(imageData) else { return }
-        add(childID: childID, kind: .photo, title: "Photo", note: nil, blob: stripped)
+        let t = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        add(childID: childID, kind: .photo, title: t.isEmpty ? "Photo" : t, note: nil, blob: stripped)
     }
 
     func addVoice(childID: UUID, audioData: Data, duration: String) {

@@ -54,15 +54,19 @@ struct CaptureView: View {
 
                 Spacer()
 
-                Button(action: save) {
-                    Text("Garder ce souvenir")
-                        .font(Typo.sans(17, .semibold))
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(canSave ? Palette.ink : Palette.muted, in: RoundedRectangle(cornerRadius: 100))
+                HStack {
+                    Spacer()
+                    Button(action: save) {
+                        Text("Garder")
+                            .font(Typo.sans(16, .medium))
+                            .foregroundStyle(.white)
+                            .padding(.vertical, 13)
+                            .padding(.horizontal, 34)
+                            .background(canSave ? Palette.ink : Palette.muted, in: Capsule())
+                    }
+                    .disabled(!canSave)
+                    Spacer()
                 }
-                .disabled(!canSave)
             }
             .padding(28)
         }
@@ -107,8 +111,12 @@ struct CaptureView: View {
 
     private var header: some View {
         HStack {
-            Text(heading).font(Typo.serif(30)).foregroundStyle(Palette.ink)
-            Spacer()
+            Text(heading)
+                .font(Typo.serif(30))
+                .foregroundStyle(Palette.ink)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+            Spacer(minLength: 12)
             Button(action: onClose) {
                 Image(systemName: "xmark")
                     .font(.system(size: 14, weight: .semibold))
@@ -137,27 +145,29 @@ struct CaptureView: View {
         }
     }
 
-    private var photoField: some View {
+    @ViewBuilder private var photoField: some View {
         PhotosPicker(selection: $pickerItem, matching: .images) {
-            ZStack {
-                if let data = pickedImage, let ui = UIImage(data: data) {
-                    Image(uiImage: ui)
-                        .resizable()
-                        .scaledToFill()
-                } else {
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .fill(Palette.paperAlt)
-                    VStack(spacing: 10) {
-                        Image(systemName: "camera").font(.system(size: 28)).foregroundStyle(Palette.bleu)
-                        Text("Choisir une photo").font(Typo.sans(15)).foregroundStyle(Palette.muted)
+            // A bounded container so a scaledToFill image fills it as an overlay
+            // instead of driving (and overflowing) the layout width.
+            Color.clear
+                .frame(maxWidth: .infinity)
+                .frame(height: 280)
+                .overlay {
+                    if let data = pickedImage, let ui = UIImage(data: data) {
+                        Image(uiImage: ui).resizable().scaledToFill()
+                    } else {
+                        VStack(spacing: 10) {
+                            Image(systemName: "camera").font(.system(size: 28)).foregroundStyle(Palette.bleu)
+                            Text("Choisir une photo").font(Typo.sans(15)).foregroundStyle(Palette.muted)
+                        }
                     }
                 }
-            }
-            .frame(height: 300)
-            .frame(maxWidth: .infinity)
-            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 20).stroke(Palette.divider, lineWidth: 1))
+                .background(Palette.paperAlt)
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 20).stroke(Palette.divider, lineWidth: 1))
+                .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
         .onChange(of: pickerItem) { _, newItem in
             Task {
                 if let data = try? await newItem?.loadTransferable(type: Data.self) {
@@ -165,13 +175,19 @@ struct CaptureView: View {
                 }
             }
         }
+
+        TextField("Un titre (optionnel)", text: $title)
+            .font(Typo.sans(15))
+            .foregroundStyle(Palette.inkSoft)
+            .padding(14)
+            .background(.white, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
     private func save() {
         switch kind {
         case .citation: store.addCitation(childID: childID, quote: text, title: title)
         case .measure: store.addMeasure(childID: childID, value: text)
-        case .photo: if let data = pickedImage { store.addPhoto(childID: childID, imageData: data) }
+        case .photo: if let data = pickedImage { store.addPhoto(childID: childID, imageData: data, title: title) }
         case .voice: if let data = recorder.recordedData() { store.addVoice(childID: childID, audioData: data, duration: recorder.durationLabel) }
         default: break
         }
