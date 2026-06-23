@@ -28,6 +28,7 @@
 		1A0000000000000000000122 /* SecureStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000120 /* SecureStore.swift */; };
 		1A0000000000000000000132 /* DeviceIdentity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000130 /* DeviceIdentity.swift */; };
 		1A0000000000000000000142 /* AuthClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000140 /* AuthClient.swift */; };
+		1A0000000000000000000152 /* CameraPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000150 /* CameraPicker.swift */; };
 		1A0000000000000000000094 /* InstrumentSerif-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000090 /* InstrumentSerif-Regular.ttf */; };
 		1A0000000000000000000095 /* InstrumentSerif-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000091 /* InstrumentSerif-Italic.ttf */; };
 		1A0000000000000000000096 /* HankenGrotesk-Variable.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000092 /* HankenGrotesk-Variable.ttf */; };
@@ -58,6 +59,7 @@
 		1A0000000000000000000120 /* SecureStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureStore.swift; sourceTree = "<group>"; };
 		1A0000000000000000000130 /* DeviceIdentity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceIdentity.swift; sourceTree = "<group>"; };
 		1A0000000000000000000140 /* AuthClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthClient.swift; sourceTree = "<group>"; };
+		1A0000000000000000000150 /* CameraPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraPicker.swift; sourceTree = "<group>"; };
 		1A0000000000000000000090 /* InstrumentSerif-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "InstrumentSerif-Regular.ttf"; sourceTree = "<group>"; };
 		1A0000000000000000000091 /* InstrumentSerif-Italic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "InstrumentSerif-Italic.ttf"; sourceTree = "<group>"; };
 		1A0000000000000000000092 /* HankenGrotesk-Variable.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "HankenGrotesk-Variable.ttf"; sourceTree = "<group>"; };
@@ -116,6 +118,7 @@
 				1A0000000000000000000120 /* SecureStore.swift */,
 				1A0000000000000000000130 /* DeviceIdentity.swift */,
 				1A0000000000000000000140 /* AuthClient.swift */,
+				1A0000000000000000000150 /* CameraPicker.swift */,
 				1A00000000000000000000F0 /* Info.plist */,
 				1A0000000000000000000098 /* Fonts */,
 			);
@@ -231,6 +234,7 @@
 				1A0000000000000000000122 /* SecureStore.swift in Sources */,
 				1A0000000000000000000132 /* DeviceIdentity.swift in Sources */,
 				1A0000000000000000000142 /* AuthClient.swift in Sources */,
+				1A0000000000000000000152 /* CameraPicker.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -283,6 +287,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Souvenir/Info.plist;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Pour photographier les dessins de votre enfant — l'image reste chiffrée sur l'appareil.";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "Déverrouille tes souvenirs avec Face ID.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Pour enregistrer les notes vocales de votre enfant — l'audio reste chiffré sur l'appareil.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -307,6 +312,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Souvenir/Info.plist;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Pour photographier les dessins de votre enfant — l'image reste chiffrée sur l'appareil.";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "Déverrouille tes souvenirs avec Face ID.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Pour enregistrer les notes vocales de votre enfant — l'audio reste chiffré sur l'appareil.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
