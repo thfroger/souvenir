@@ -7,8 +7,7 @@
 .build/
 .swiftpm/
 Packages/
-*.xcodeproj/xcuserdata/
-*.xcworkspace/xcuserdata/
+xcuserdata/
 DerivedData/
 *.xcuserstate
 *.hmap
