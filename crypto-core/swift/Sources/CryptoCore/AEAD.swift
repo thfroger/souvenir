@@ -1,3 +1,4 @@
+import Foundation
 import Clibsodium
 
 /// Authenticated encryption with XChaCha20-Poly1305 (IETF).
@@ -7,13 +8,29 @@ public enum AEAD {
     public static let nonceBytes = crypto_aead_xchacha20poly1305_ietf_npubbytes()
     public static let tagBytes = crypto_aead_xchacha20poly1305_ietf_abytes()
 
-    public struct Sealed: Equatable {
+    public struct Sealed: Equatable, Codable {
         public let nonce: [UInt8]
         public let ciphertext: [UInt8] // includes the Poly1305 tag
 
         public init(nonce: [UInt8], ciphertext: [UInt8]) {
             self.nonce = nonce
             self.ciphertext = ciphertext
+        }
+
+        // Persist as base64 (Data) rather than JSON int arrays — for encrypted
+        // blobs at rest (SECURITY.md §6.4). The bytes are already ciphertext.
+        enum CodingKeys: String, CodingKey { case nonce, ciphertext }
+
+        public init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            nonce = Array(try c.decode(Data.self, forKey: .nonce))
+            ciphertext = Array(try c.decode(Data.self, forKey: .ciphertext))
+        }
+
+        public func encode(to encoder: Encoder) throws {
+            var c = encoder.container(keyedBy: CodingKeys.self)
+            try c.encode(Data(nonce), forKey: .nonce)
+            try c.encode(Data(ciphertext), forKey: .ciphertext)
         }
     }
 

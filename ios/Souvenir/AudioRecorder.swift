@@ -13,7 +13,6 @@ final class AudioRecorder: ObservableObject {
     @Published var permissionDenied = false
 
     private var recorder: AVAudioRecorder?
-    private var timer: Timer?
 
     var durationLabel: String {
         let total = Int(elapsed.rounded())
@@ -23,13 +22,20 @@ final class AudioRecorder: ObservableObject {
     func toggle() { isRecording ? stop() : start() }
 
     func start() {
-        AVAudioApplication.requestRecordPermission { [weak self] granted in
-            Task { @MainActor in
+        // `[weak self]` lives on the @MainActor Task, not on the @Sendable
+        // completion — capturing `self` directly in the latter is rejected under
+        // strict concurrency (Swift 5.10).
+        AVAudioApplication.requestRecordPermission { granted in
+            Task { @MainActor [weak self] in
                 guard let self else { return }
-                guard granted else { self.permissionDenied = true; return }
-                self.beginRecording()
+                if granted { self.beginRecording() } else { self.permissionDenied = true }
             }
         }
+    }
+
+    /// Called by the view on a timer tick to refresh the elapsed display.
+    func refresh() {
+        if isRecording { elapsed = recorder?.currentTime ?? 0 }
     }
 
     private func beginRecording() {
@@ -51,9 +57,6 @@ final class AudioRecorder: ObservableObject {
             finishedURL = nil
             elapsed = 0
             isRecording = true
-            timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
-                Task { @MainActor in guard let self, let r = self.recorder else { return }; self.elapsed = r.currentTime }
-            }
         } catch {
             isRecording = false
         }
@@ -61,7 +64,6 @@ final class AudioRecorder: ObservableObject {
 
     func stop() {
         recorder?.stop()
-        timer?.invalidate(); timer = nil
         finishedURL = recorder?.url
         isRecording = false
     }
