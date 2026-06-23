@@ -293,6 +293,7 @@ struct DiagonalStripes: View {
 
 struct GlassBottomBar: View {
     @Binding var tab: ContentView.Tab
+    var onAdd: () -> Void = {}
 
     var body: some View {
         HStack {
@@ -303,12 +304,14 @@ struct GlassBottomBar: View {
             }
             .buttonStyle(.plain)
             Spacer()
-            // ＋ opens the Ajout sheet (écran D) — to build.
-            Image(systemName: "plus")
-                .font(.headline)
-                .foregroundStyle(.white)
-                .frame(width: 48, height: 48)
-                .background(Palette.ink, in: Circle())
+            Button(action: onAdd) {
+                Image(systemName: "plus")
+                    .font(.headline)
+                    .foregroundStyle(.white)
+                    .frame(width: 48, height: 48)
+                    .background(Palette.ink, in: Circle())
+            }
+            .buttonStyle(.plain)
             Spacer()
             Button { tab = .arbre } label: {
                 Text("Arbre")
