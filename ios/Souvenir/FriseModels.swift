@@ -66,7 +66,7 @@ enum MemoryKind: String, Identifiable, Codable {
 }
 
 struct Memory: Identifiable {
-    let id = UUID()
+    let id: UUID
     let childID: UUID
     let kind: MemoryKind
     let daysAgo: Int
@@ -77,9 +77,10 @@ struct Memory: Identifiable {
     let imageData: Data? // decrypted image for display (nil → pastel placeholder)
     let audioData: Data? // decrypted audio for playback (nil → simulated)
 
-    init(childID: UUID, kind: MemoryKind, daysAgo: Int, title: String,
+    init(id: UUID = UUID(), childID: UUID, kind: MemoryKind, daysAgo: Int, title: String,
          note: String?, audio: String?, pastel: [Color],
          imageData: Data? = nil, audioData: Data? = nil) {
+        self.id = id
         self.childID = childID
         self.kind = kind
         self.daysAgo = daysAgo

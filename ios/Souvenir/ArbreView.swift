@@ -11,6 +11,7 @@ struct ArbreView: View {
     let childID: UUID
     @EnvironmentObject private var store: MemoryStore
     @State private var openedMemory: Memory?
+    @State private var start = Date()
 
     private var child: Child { SampleData.children.first { $0.id == childID } ?? SampleData.lea }
 
@@ -53,12 +54,17 @@ struct ArbreView: View {
     }
 
     private var memoryField: some View {
-        GeometryReader { geo in
+        // Decrypt once per render — NOT inside the per-frame TimelineView closure
+        // (that would re-decrypt + re-id every memory 60×/s, teleporting the dots).
+        let mems = memories
+        return GeometryReader { geo in
             TimelineView(.animation) { timeline in
-                let t = timeline.date.timeIntervalSinceReferenceDate
+                // Elapsed since the screen opened — small values, exact precision,
+                // unambiguously 1× real time.
+                let t = timeline.date.timeIntervalSince(start)
                 ZStack {
-                    ForEach(Array(memories.enumerated()), id: \.element.id) { i, mem in
-                        dot(mem, index: i, count: memories.count, t: t, size: geo.size)
+                    ForEach(Array(mems.enumerated()), id: \.element.id) { i, mem in
+                        dot(mem, index: i, count: mems.count, t: t, size: geo.size)
                     }
                 }
             }
@@ -69,7 +75,7 @@ struct ArbreView: View {
 
     @ViewBuilder private func dot(_ mem: Memory, index: Int, count: Int, t: Double, size: CGSize) -> some View {
         let r = Seed(mem.id)
-        let duration = 17 + r.v(1) * 8 // 17..25 s per appear→drift→fade cycle
+        let duration = 52 + r.v(1) * 40 // 52..92 s per appear→drift→fade cycle (slow & calm)
         // Phases spread evenly by index (+ small jitter) so the field is never
         // empty — a few souvenirs are always present while others come and go.
         let phase = Double(index) / Double(max(1, count)) + r.v(2) * 0.12
