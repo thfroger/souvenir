@@ -1,0 +1,11 @@
+{
+  "name": "souvenir-backend",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "description": "Deliberately dumb encrypted-blob + opaque-metadata store (ARCHITECTURE.md §1).",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test"
+  }
+}
