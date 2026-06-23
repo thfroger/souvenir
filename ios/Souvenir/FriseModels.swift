@@ -5,7 +5,7 @@ import SwiftUI
 // in-memory placeholders. No `liked` field (removed from scope, §6).
 
 struct Child: Identifiable {
-    let id = UUID()
+    let id: UUID
     let name: String
     let birthYear: Int
     let avatar: [Color] // two-pastel gradient
@@ -114,8 +114,12 @@ struct Surprise {
 }
 
 enum SampleData {
-    static let lea = Child(name: "Léa", birthYear: 2021, avatar: [Palette.rose, Palette.lilas])
-    static let noe = Child(name: "Noé", birthYear: 2023, avatar: [Palette.bleu, Palette.vert])
+    // Stable ids: a child's identity must survive relaunches and travel across
+    // devices (the childID is encrypted into each memory's content, §2.1).
+    static let lea = Child(id: UUID(uuidString: "1EA00000-0000-0000-0000-000000000001")!,
+                           name: "Léa", birthYear: 2021, avatar: [Palette.rose, Palette.lilas])
+    static let noe = Child(id: UUID(uuidString: "0E000000-0000-0000-0000-000000000002")!,
+                           name: "Noé", birthYear: 2023, avatar: [Palette.bleu, Palette.vert])
     static let children = [lea, noe]
 
     static func surprise(for child: Child) -> Surprise {

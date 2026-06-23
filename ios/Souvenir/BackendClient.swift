@@ -28,6 +28,44 @@ struct BackendClient {
         }
     }
 
+    /// One opaque metadata row from a delta sync.
+    struct Row {
+        let entryID: String
+        let committed: Bool
+        let wrappedKey: String
+        let blobHash: String
+        let seq: Int
+    }
+
+    /// Delta pull of opaque rows for this vault (ARCHITECTURE.md §6 hot query).
+    func fetchDelta(since: Int) async -> [Row] {
+        do {
+            let url = baseURL.appending(path: "vaults/\(vault)/entries")
+                .appending(queryItems: [URLQueryItem(name: "since", value: String(since))])
+            var req = URLRequest(url: url)
+            req.httpMethod = "GET"
+            req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            let (data, resp) = try await URLSession.shared.data(for: req)
+            try ensureOK(resp)
+            let obj = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+            let arr = obj?["entries"] as? [[String: Any]] ?? []
+            return arr.map {
+                Row(entryID: $0["entry_id"] as? String ?? "",
+                    committed: $0["committed"] as? Bool ?? false,
+                    wrappedKey: $0["wrapped_key"] as? String ?? "",
+                    blobHash: $0["blob_hash"] as? String ?? "",
+                    seq: $0["seq"] as? Int ?? 0)
+            }
+        } catch {
+            return []
+        }
+    }
+
+    /// Fetch an opaque blob (best-effort).
+    func blob(hash: String) async -> Data? {
+        try? await fetchBlob(hash: hash)
+    }
+
     // MARK: routes
 
     private func putBlob(hash: String, blob: Data) async throws {
