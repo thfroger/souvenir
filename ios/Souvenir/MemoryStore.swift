@@ -39,9 +39,9 @@ final class MemoryStore: ObservableObject {
         let createdAt: Date
         let pastel: [Color]
         let audio: String?
-        let sealed: AEAD.Sealed       // encrypted Content
-        let sealedImage: AEAD.Sealed? // encrypted image blob (same DEK), if any
-        let wrappedKey: WrappedKey    // per-entry DEK wrapped under the VK
+        let sealed: AEAD.Sealed      // encrypted Content
+        let sealedBlob: AEAD.Sealed? // encrypted media blob (image or audio, same DEK), if any
+        let wrappedKey: WrappedKey   // per-entry DEK wrapped under the VK
     }
 
     private let vaultKey: SymmetricKey
@@ -81,16 +81,16 @@ final class MemoryStore: ObservableObject {
     // MARK: crypto core path
 
     private func add(childID: UUID, kind: MemoryKind, title: String, note: String?,
-                     pastel: [Color], audio: String? = nil, image: Data? = nil, createdAt: Date = Date()) {
+                     pastel: [Color], audio: String? = nil, blob: Data? = nil, createdAt: Date = Date()) {
         guard let payload = try? JSONEncoder().encode(Content(title: title, note: note)) else { return }
         do {
             let dek = try DataKey.generate()
             let sealed = try AEAD.seal(Array(payload), key: dek.bytes)
-            let sealedImage = try image.map { try AEAD.seal(Array($0), key: dek.bytes) }
+            let sealedBlob = try blob.map { try AEAD.seal(Array($0), key: dek.bytes) }
             let wrapped = try KeyWrap.wrap(dek, under: vaultKey)
             entries.append(Entry(childID: childID, kind: kind, createdAt: createdAt,
                                  pastel: pastel, audio: audio, sealed: sealed,
-                                 sealedImage: sealedImage, wrappedKey: wrapped))
+                                 sealedBlob: sealedBlob, wrappedKey: wrapped))
         } catch {
             // A failed encrypt must never surface a half-written entry (SECURITY.md §1.6).
         }
@@ -99,7 +99,12 @@ final class MemoryStore: ObservableObject {
     func addPhoto(childID: UUID, imageData: Data) {
         guard let stripped = ImageTools.stripExifJPEG(imageData) else { return }
         add(childID: childID, kind: .photo, title: "Photo", note: nil,
-            pastel: [Palette.bleu, Palette.vert], image: stripped)
+            pastel: [Palette.bleu, Palette.vert], blob: stripped)
+    }
+
+    func addVoice(childID: UUID, audioData: Data, duration: String) {
+        add(childID: childID, kind: .voice, title: "Note vocale", note: nil,
+            pastel: [Palette.peche, Palette.jaune], audio: duration, blob: audioData)
     }
 
     private func decrypt(_ e: Entry) -> Memory? {
@@ -110,10 +115,11 @@ final class MemoryStore: ObservableObject {
         else { return nil }
 
         let days = max(0, Calendar.current.dateComponents([.day], from: e.createdAt, to: Date()).day ?? 0)
-        let image = e.sealedImage.flatMap { try? AEAD.open($0, key: dek.bytes) }.map { Data($0) }
+        let blob = e.sealedBlob.flatMap { try? AEAD.open($0, key: dek.bytes) }.map { Data($0) }
         return Memory(childID: e.childID, kind: e.kind, daysAgo: days,
-                      title: content.title, note: content.note, audio: e.audio,
-                      pastel: e.pastel, imageData: image)
+                      title: content.title, note: content.note, audio: e.audio, pastel: e.pastel,
+                      imageData: e.kind.hasPhoto ? blob : nil,
+                      audioData: e.kind == .voice ? blob : nil)
     }
 
     // MARK: seed (encrypt the sample memories so the Frise has content)

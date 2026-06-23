@@ -12,6 +12,7 @@ struct CaptureView: View {
     let onClose: () -> Void
 
     @EnvironmentObject private var store: MemoryStore
+    @StateObject private var recorder = AudioRecorder()
     @State private var text = ""
     @State private var title = ""
     @State private var pickerItem: PhotosPickerItem?
@@ -21,13 +22,18 @@ struct CaptureView: View {
     private var heading: String {
         switch kind {
         case .photo: return "Une photo"
+        case .voice: return "Une note vocale"
         case .measure: return "Une mesure"
         default: return "Une petite phrase"
         }
     }
 
     private var canSave: Bool {
-        kind == .photo ? pickedImage != nil : !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        switch kind {
+        case .photo: return pickedImage != nil
+        case .voice: return recorder.finishedURL != nil
+        default: return !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
     }
 
     var body: some View {
@@ -40,7 +46,11 @@ struct CaptureView: View {
                     .tracking(1.5)
                     .foregroundStyle(Palette.faint)
 
-                if kind == .photo { photoField } else { textFields }
+                switch kind {
+                case .photo: photoField
+                case .voice: voiceField
+                default: textFields
+                }
 
                 Spacer()
 
@@ -56,7 +66,42 @@ struct CaptureView: View {
             }
             .padding(28)
         }
-        .onAppear { if kind != .photo { focused = true } }
+        .onAppear { if kind == .citation || kind == .measure { focused = true } }
+    }
+
+    private var voiceField: some View {
+        VStack(spacing: 16) {
+            Button { recorder.toggle() } label: {
+                ZStack {
+                    Circle().fill(recorder.isRecording ? Palette.accent : Palette.ink)
+                        .frame(width: 76, height: 76)
+                    Image(systemName: recorder.isRecording ? "stop.fill" : "mic.fill")
+                        .font(.system(size: 26))
+                        .foregroundStyle(.white)
+                }
+            }
+            .buttonStyle(.plain)
+
+            Text(statusLabel)
+                .font(Typo.mono(12))
+                .foregroundStyle(Palette.muted)
+
+            if recorder.permissionDenied {
+                Text("Micro refusé — autorise-le dans Réglages.")
+                    .font(Typo.sans(13))
+                    .foregroundStyle(.red)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 30)
+        .background(.white, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 20).stroke(Palette.divider, lineWidth: 1))
+    }
+
+    private var statusLabel: String {
+        if recorder.isRecording { return "● ENREGISTREMENT · \(recorder.durationLabel)" }
+        if recorder.finishedURL != nil { return "ENREGISTRÉ · \(recorder.durationLabel)" }
+        return "TOUCHEZ POUR ENREGISTRER"
     }
 
     private var header: some View {
@@ -126,6 +171,7 @@ struct CaptureView: View {
         case .citation: store.addCitation(childID: childID, quote: text, title: title)
         case .measure: store.addMeasure(childID: childID, value: text)
         case .photo: if let data = pickedImage { store.addPhoto(childID: childID, imageData: data) }
+        case .voice: if let data = recorder.recordedData() { store.addVoice(childID: childID, audioData: data, duration: recorder.durationLabel) }
         default: break
         }
         onClose()
