@@ -64,9 +64,11 @@ struct Memory: Identifiable {
     let audio: String?  // duration label, e.g. "0:42"
     let pastel: [Color] // gradient for the photo placeholder / thumbnail tint
     let imageData: Data? // decrypted image for display (nil → pastel placeholder)
+    let audioData: Data? // decrypted audio for playback (nil → simulated)
 
     init(childID: UUID, kind: MemoryKind, daysAgo: Int, title: String,
-         note: String?, audio: String?, pastel: [Color], imageData: Data? = nil) {
+         note: String?, audio: String?, pastel: [Color],
+         imageData: Data? = nil, audioData: Data? = nil) {
         self.childID = childID
         self.kind = kind
         self.daysAgo = daysAgo
@@ -75,6 +77,7 @@ struct Memory: Identifiable {
         self.audio = audio
         self.pastel = pastel
         self.imageData = imageData
+        self.audioData = audioData
     }
 
     var date: Date {

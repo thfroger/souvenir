@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import AVFoundation
 
 /// Immersive memory view (écran C, the design's priority screen — DESIGN.md §3.B).
 /// Rises from the bottom over the current screen; large visual + editorial sheet,
@@ -104,7 +105,7 @@ struct ImmersiveMemoryView: View {
             }
 
             if memory.kind == .voice {
-                VoicePlayerView(duration: memory.audio ?? "0:00", caption: "la voix de \(child.name)")
+                VoicePlayerView(duration: memory.audio ?? "0:00", caption: "la voix de \(child.name)", audioData: memory.audioData)
             }
 
             if memory.kind == .milestone {
@@ -127,22 +128,24 @@ struct ImmersiveMemoryView: View {
 // MARK: - Voice player (DESIGN.md §3.B)
 
 /// Play/pause + a waveform that fills with terracotta as it progresses.
-/// PLACEHOLDER playback: progress is simulated (there is no decrypted audio blob
-/// yet). To be replaced by an AVAudioPlayer over the decrypted audio
-/// (DESIGN_INTEGRATION.md §5) — never any cloud speech API.
+/// Plays the decrypted audio blob with AVAudioPlayer when present
+/// (DESIGN_INTEGRATION.md §5 — on-device only, never a cloud speech API); falls
+/// back to a simulated progress for sample memories that carry no blob.
 struct VoicePlayerView: View {
     let duration: String
     let caption: String
+    var audioData: Data?
 
     @State private var progress: Double = 0
     @State private var playing = false
+    @State private var player: AVAudioPlayer?
 
     private let bars: [CGFloat] = [10, 18, 26, 14, 30, 22, 34, 20, 28, 16, 24, 12, 22, 18]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 12) {
-                Button { playing.toggle() } label: {
+                Button(action: toggle) {
                     Image(systemName: playing ? "pause.fill" : "play.fill")
                         .font(Typo.sans(15))
                         .foregroundStyle(.white)
@@ -161,8 +164,31 @@ struct VoicePlayerView: View {
                 .font(Typo.sans(12))
                 .foregroundStyle(Color(hex: 0xA89C8E))
         }
-        .onReceive(Timer.publish(every: 0.05, on: .main, in: .common).autoconnect()) { _ in
-            guard playing else { return }
+        .onReceive(Timer.publish(every: 0.05, on: .main, in: .common).autoconnect()) { _ in tick() }
+        .onDisappear { player?.stop() }
+    }
+
+    private func toggle() {
+        if audioData == nil {
+            playing.toggle() // simulated
+            return
+        }
+        if player == nil, let data = audioData {
+            try? AVAudioSession.sharedInstance().setCategory(.playback)
+            try? AVAudioSession.sharedInstance().setActive(true)
+            player = try? AVAudioPlayer(data: data)
+            player?.prepareToPlay()
+        }
+        guard let p = player else { return }
+        if p.isPlaying { p.pause(); playing = false } else { p.play(); playing = true }
+    }
+
+    private func tick() {
+        guard playing else { return }
+        if let p = player {
+            progress = p.duration > 0 ? p.currentTime / p.duration : 0
+            if !p.isPlaying { playing = false; progress = 0 } // reached the end
+        } else {
             progress = min(1, progress + 0.012)
             if progress >= 1 { playing = false }
         }
