@@ -85,17 +85,53 @@ final class MemoryStore: ObservableObject {
         let wrappedKey: WrappedKey    // per-entry DEK wrapped under the VK
     }
 
+    /// What gets uploaded as the opaque blob: the entry's ciphertext parts. The
+    /// DEK (wrapped under the VK) travels separately as the entry's wrapped key.
+    private struct BlobPayload: Codable {
+        let sealed: AEAD.Sealed
+        let sealedBlob: AEAD.Sealed?
+    }
+
     private let vaultKey: SymmetricKey
     private let fileURL: URL
+    private let client: BackendClient?
     @Published private var entries: [StoredEntry] = []
+    @Published private(set) var syncing = false
+    @Published private(set) var syncedIDs: Set<UUID> = []
+
+    var pendingSyncCount: Int { entries.count - syncedIDs.count }
 
     init() {
         vaultKey = VaultKeychain.loadOrCreate()
         fileURL = Self.makeFileURL()
+        // Best-effort sync to the local dumb backend; nil-out to run purely local.
+        client = BackendClient(baseURL: URL(string: "http://localhost:8787")!, token: "tok-A", vault: "vault-A")
         if let loaded = Self.load(from: fileURL) {
             entries = loaded
         } else {
             seedFromSamples()
+        }
+        syncAll()
+    }
+
+    /// Push every not-yet-synced entry. Idempotent (content-addressed blobs +
+    /// client-UUID entries), so this is safe to call on launch and after capture.
+    func syncAll() {
+        guard let client else { return }
+        let pending = entries.filter { !syncedIDs.contains($0.id) }
+        guard !pending.isEmpty else { return }
+        Task { @MainActor in
+            syncing = true
+            for e in pending {
+                guard
+                    let blob = try? JSONEncoder().encode(BlobPayload(sealed: e.sealed, sealedBlob: e.sealedBlob)),
+                    let wk = try? JSONEncoder().encode(e.wrappedKey)
+                else { continue }
+                if await client.upload(entryID: e.id.uuidString, wrappedKeyB64: wk.base64EncodedString(), blob: blob) {
+                    syncedIDs.insert(e.id)
+                }
+            }
+            syncing = false
         }
     }
 
@@ -142,7 +178,7 @@ final class MemoryStore: ObservableObject {
             let wrapped = try KeyWrap.wrap(dek, under: vaultKey)
             entries.append(StoredEntry(id: UUID(), childID: childID, kind: kind, createdAt: createdAt,
                                        audio: audio, sealed: sealed, sealedBlob: sealedBlob, wrappedKey: wrapped))
-            if persistNow { persist() }
+            if persistNow { persist(); syncAll() }
         } catch {
             // A failed encrypt must never surface a half-written entry (SECURITY.md §1.6).
         }
