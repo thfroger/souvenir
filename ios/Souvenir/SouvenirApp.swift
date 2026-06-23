@@ -6,7 +6,7 @@ struct SouvenirApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            RootView()
         }
     }
 }

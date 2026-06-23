@@ -23,6 +23,8 @@
 		1A00000000000000000000C2 /* CaptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000000C0 /* CaptureView.swift */; };
 		1A00000000000000000000D2 /* AudioRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000000D0 /* AudioRecorder.swift */; };
 		1A00000000000000000000E2 /* BackendClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000000E0 /* BackendClient.swift */; };
+		1A0000000000000000000102 /* LockView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000100 /* LockView.swift */; };
+		1A0000000000000000000112 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000110 /* RootView.swift */; };
 		1A0000000000000000000094 /* InstrumentSerif-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000090 /* InstrumentSerif-Regular.ttf */; };
 		1A0000000000000000000095 /* InstrumentSerif-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000091 /* InstrumentSerif-Italic.ttf */; };
 		1A0000000000000000000096 /* HankenGrotesk-Variable.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000092 /* HankenGrotesk-Variable.ttf */; };
@@ -48,6 +50,8 @@
 		1A00000000000000000000D0 /* AudioRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioRecorder.swift; sourceTree = "<group>"; };
 		1A00000000000000000000E0 /* BackendClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackendClient.swift; sourceTree = "<group>"; };
 		1A00000000000000000000F0 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		1A0000000000000000000100 /* LockView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockView.swift; sourceTree = "<group>"; };
+		1A0000000000000000000110 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		1A0000000000000000000090 /* InstrumentSerif-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "InstrumentSerif-Regular.ttf"; sourceTree = "<group>"; };
 		1A0000000000000000000091 /* InstrumentSerif-Italic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "InstrumentSerif-Italic.ttf"; sourceTree = "<group>"; };
 		1A0000000000000000000092 /* HankenGrotesk-Variable.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "HankenGrotesk-Variable.ttf"; sourceTree = "<group>"; };
@@ -101,6 +105,8 @@
 				1A00000000000000000000C0 /* CaptureView.swift */,
 				1A00000000000000000000D0 /* AudioRecorder.swift */,
 				1A00000000000000000000E0 /* BackendClient.swift */,
+				1A0000000000000000000100 /* LockView.swift */,
+				1A0000000000000000000110 /* RootView.swift */,
 				1A00000000000000000000F0 /* Info.plist */,
 				1A0000000000000000000098 /* Fonts */,
 			);
@@ -211,6 +217,8 @@
 				1A00000000000000000000C2 /* CaptureView.swift in Sources */,
 				1A00000000000000000000D2 /* AudioRecorder.swift in Sources */,
 				1A00000000000000000000E2 /* BackendClient.swift in Sources */,
+				1A0000000000000000000102 /* LockView.swift in Sources */,
+				1A0000000000000000000112 /* RootView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
