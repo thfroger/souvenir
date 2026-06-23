@@ -28,8 +28,11 @@ No dependencies — plain Node ESM, so CI is just `node --test` (blocking job).
 - **Authorization at the blob-and-key tier** (`§6.1`): no cross-account reads, no
   fetching a blob you don't reference, no membership forge; content-addressed
   blobs; idempotent entry creation.
+- **Orphan-blob janitor** (`ARCHITECTURE.md §5`, `TESTING.md §4`): a blob with no
+  committed metadata is collected after N hours; a committed blob never is.
+  `Backend.collectOrphans({ now, ttlHours })` is meant to run on a schedule.
 
 ## Not here yet
 
-Persistence (Postgres + object storage), the commit janitor for orphan blobs
-(`ARCHITECTURE.md §5`), and the co-parent / shared-vault authorization (V2).
+Persistence (Postgres + object storage) and the co-parent / shared-vault
+authorization (V2).
