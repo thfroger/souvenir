@@ -222,7 +222,7 @@ final class MemoryStore: ObservableObject {
 
         let days = max(0, Calendar.current.dateComponents([.day], from: content.createdAt, to: Date()).day ?? 0)
         let blob = e.sealedBlob.flatMap { try? AEAD.open($0, key: dek.bytes) }.map { Data($0) }
-        return Memory(childID: content.childID, kind: content.kind, daysAgo: days,
+        return Memory(id: e.id, childID: content.childID, kind: content.kind, daysAgo: days,
                       title: content.title, note: content.note, audio: content.audio, pastel: content.kind.gradient,
                       imageData: content.kind.hasPhoto ? blob : nil,
                       audioData: content.kind == .voice ? blob : nil)
