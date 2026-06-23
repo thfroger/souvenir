@@ -26,9 +26,6 @@ struct ImmersiveMemoryView: View {
             ScrollView {
                 VStack(spacing: -28) {
                     headerVisual
-                        .frame(height: 430)
-                        .frame(maxWidth: .infinity)
-                        .clipped()
                     sheet
                 }
             }
@@ -36,7 +33,7 @@ struct ImmersiveMemoryView: View {
 
             backButton
                 .padding(.leading, 20)
-                .padding(.top, 8)
+                .padding(.top, 12)
         }
     }
 
@@ -44,10 +41,24 @@ struct ImmersiveMemoryView: View {
 
     @ViewBuilder private var headerVisual: some View {
         if let data = memory.imageData, let ui = UIImage(data: data) {
-            Image(uiImage: ui).resizable().scaledToFill()
+            // Show the photo at its natural aspect (no crop), capped — a landscape
+            // photo stays short instead of being forced into a tall frame.
+            Image(uiImage: ui)
+                .resizable()
+                .scaledToFit()
+                .frame(maxWidth: .infinity)
+                .frame(maxHeight: 540)
         } else {
-            switch memory.kind {
-            case .citation:
+            coloredHeader
+                .frame(height: 430)
+                .frame(maxWidth: .infinity)
+                .clipped()
+        }
+    }
+
+    @ViewBuilder private var coloredHeader: some View {
+        switch memory.kind {
+        case .citation:
             ZStack {
                 LinearGradient(colors: memory.pastel, startPoint: .topLeading, endPoint: .bottomTrailing)
                 Text("\u{201C}")
@@ -63,7 +74,6 @@ struct ImmersiveMemoryView: View {
                     .font(.system(size: 46))
                     .foregroundStyle(.white.opacity(0.9))
             }
-            }
         }
     }
 
@@ -72,9 +82,10 @@ struct ImmersiveMemoryView: View {
             Image(systemName: "chevron.left")
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(Palette.ink)
-                .frame(width: 38, height: 38)
-                .background(.ultraThinMaterial, in: Circle())
-                .overlay(Circle().stroke(.white.opacity(0.6), lineWidth: 1))
+                .frame(width: 40, height: 40)
+                .background(.regularMaterial, in: Circle())
+                .overlay(Circle().stroke(.white.opacity(0.7), lineWidth: 1))
+                .shadow(color: Color(hex: 0x50323C).opacity(0.25), radius: 8, y: 2)
         }
     }
 
