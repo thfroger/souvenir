@@ -25,10 +25,6 @@ struct ContentView: View {
             }
             GlassBottomBar(tab: $tab) { showAdd = true }
         }
-        // Fixed light "paper" aesthetic (DESIGN.md §2): no dark mode is designed,
-        // so the system materials (the glass bar, the immersive back button) must
-        // not flip dark on a device set to Dark Mode.
-        .preferredColorScheme(.light)
         .environmentObject(store)
         .sheet(isPresented: $showAdd, onDismiss: {
             if let k = pendingKind { pendingKind = nil; captureKind = k }
