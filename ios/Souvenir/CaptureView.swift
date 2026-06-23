@@ -17,7 +17,10 @@ struct CaptureView: View {
     @State private var title = ""
     @State private var pickerItem: PhotosPickerItem?
     @State private var pickedImage: Data?
+    @State private var showCamera = false
     @FocusState private var focused: Bool
+
+    private var cameraAvailable: Bool { UIImagePickerController.isSourceTypeAvailable(.camera) }
 
     private var heading: String {
         switch kind {
@@ -57,7 +60,8 @@ struct CaptureView: View {
                     .foregroundStyle(Palette.faint)
 
                 switch kind {
-                case .photo, .drawing: photoField
+                case .photo: photoField
+                case .drawing: drawingField
                 case .voice: voiceField
                 default: textFields // citation, measure, milestone
                 }
@@ -155,42 +159,72 @@ struct CaptureView: View {
         }
     }
 
-    @ViewBuilder private var photoField: some View {
-        PhotosPicker(selection: $pickerItem, matching: .images) {
-            // A bounded container so a scaledToFill image fills it as an overlay
-            // instead of driving (and overflowing) the layout width.
-            Color.clear
-                .frame(maxWidth: .infinity)
-                .frame(height: 280)
-                .overlay {
-                    if let data = pickedImage, let ui = UIImage(data: data) {
-                        Image(uiImage: ui).resizable().scaledToFill()
-                    } else {
-                        VStack(spacing: 10) {
-                            Image(systemName: kind == .drawing ? "scribble.variable" : "camera").font(.system(size: 28)).foregroundStyle(Palette.bleu)
-                            Text(kind == .drawing ? "Choisir un dessin" : "Choisir une photo").font(Typo.sans(15)).foregroundStyle(Palette.muted)
-                        }
+    // A bounded container so a scaledToFill image fills it as an overlay instead
+    // of driving (and overflowing) the layout width.
+    private func mediaPreview(icon: String, label: String) -> some View {
+        Color.clear
+            .frame(maxWidth: .infinity)
+            .frame(height: 280)
+            .overlay {
+                if let data = pickedImage, let ui = UIImage(data: data) {
+                    Image(uiImage: ui).resizable().scaledToFill()
+                } else {
+                    VStack(spacing: 10) {
+                        Image(systemName: icon).font(.system(size: 28)).foregroundStyle(Palette.bleu)
+                        Text(label).font(Typo.sans(15)).foregroundStyle(Palette.muted)
                     }
                 }
-                .background(Palette.paperAlt)
-                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 20).stroke(Palette.divider, lineWidth: 1))
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .onChange(of: pickerItem) { _, newItem in
-            Task {
-                if let data = try? await newItem?.loadTransferable(type: Data.self) {
-                    pickedImage = data
-                }
             }
-        }
+            .background(Palette.paperAlt)
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 20).stroke(Palette.divider, lineWidth: 1))
+            .contentShape(Rectangle())
+    }
 
+    private var titleField: some View {
         TextField("Un titre (optionnel)", text: $title)
             .font(Typo.sans(15))
             .foregroundStyle(Palette.inkSoft)
             .padding(14)
             .background(.white, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    private var libraryPicker: some View {
+        PhotosPicker(selection: $pickerItem, matching: .images) {
+            mediaPreview(icon: "camera", label: "Choisir une photo")
+        }
+        .buttonStyle(.plain)
+        .onChange(of: pickerItem) { _, newItem in
+            Task { if let data = try? await newItem?.loadTransferable(type: Data.self) { pickedImage = data } }
+        }
+    }
+
+    @ViewBuilder private var photoField: some View {
+        libraryPicker
+        titleField
+    }
+
+    // A drawing is photographed on the spot — open the camera. The simulator has
+    // no camera, so fall back to the library there.
+    @ViewBuilder private var drawingField: some View {
+        if cameraAvailable {
+            Button { showCamera = true } label: {
+                mediaPreview(icon: "camera.fill", label: pickedImage == nil ? "Photographier le dessin" : "Reprendre la photo")
+            }
+            .buttonStyle(.plain)
+            .fullScreenCover(isPresented: $showCamera) {
+                CameraPicker { pickedImage = $0 }.ignoresSafeArea()
+            }
+        } else {
+            PhotosPicker(selection: $pickerItem, matching: .images) {
+                mediaPreview(icon: "scribble.variable", label: "Choisir un dessin")
+            }
+            .buttonStyle(.plain)
+            .onChange(of: pickerItem) { _, newItem in
+                Task { if let data = try? await newItem?.loadTransferable(type: Data.self) { pickedImage = data } }
+            }
+        }
+        titleField
     }
 
     private func save() {
