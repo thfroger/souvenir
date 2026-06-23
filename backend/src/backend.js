@@ -21,7 +21,7 @@ const FORBIDDEN_FIELDS = new Set([
 
 export class Backend {
   constructor() {
-    this.blobs = new Map(); // hash -> Buffer (opaque ciphertext)
+    this.blobs = new Map(); // hash -> { bytes: Buffer (opaque ciphertext), uploadedAt: ms }
     this.entries = []; // opaque metadata rows
     this.seqByVault = new Map(); // vault_id -> monotonic seq
     this.logs = []; // content-free structured logs (SECURITY.md §6.2)
@@ -53,7 +53,7 @@ export class Backend {
       const bytes = Buffer.from(body?.data_b64 ?? "", "base64");
       const actual = createHash("sha256").update(bytes).digest("hex");
       if (actual !== hash) return { status: 400, body: { error: "hash_mismatch" } };
-      this.blobs.set(hash, bytes);
+      this.blobs.set(hash, { bytes, uploadedAt: Date.now() });
       this.log("blob.put", { hash });
       return { status: 200, body: { hash } };
     }
@@ -67,10 +67,10 @@ export class Backend {
         (e) => e.blob_hash === hash && this.owns(token, e.vault_id),
       );
       if (!referenced) return { status: 403, body: { error: "forbidden" } };
-      const bytes = this.blobs.get(hash);
-      if (!bytes) return { status: 404, body: { error: "not_found" } };
+      const rec = this.blobs.get(hash);
+      if (!rec) return { status: 404, body: { error: "not_found" } };
       this.log("blob.get", { hash });
-      return { status: 200, body: { data_b64: bytes.toString("base64") } };
+      return { status: 200, body: { data_b64: rec.bytes.toString("base64") } };
     }
 
     // POST /vaults/:vaultId/entries — create a pending opaque metadata row.
@@ -133,6 +133,24 @@ export class Backend {
     }
 
     return { status: 404, body: { error: "no_route" } };
+  }
+
+  // Janitor (ARCHITECTURE.md §5): delete blobs that have no COMMITTED metadata
+  // after N hours. This reclaims the orphans left when a blob uploads but its
+  // metadata write fails/times out — without ever touching a committed blob.
+  // Meant to run on a schedule (cron); `now` is injectable for tests.
+  collectOrphans({ now = Date.now(), ttlHours = 24 } = {}) {
+    const cutoff = now - ttlHours * 3600 * 1000;
+    const removed = [];
+    for (const [hash, rec] of this.blobs) {
+      const committed = this.entries.some((e) => e.blob_hash === hash && e.committed);
+      if (!committed && rec.uploadedAt < cutoff) {
+        this.blobs.delete(hash);
+        removed.push(hash);
+      }
+    }
+    this.log("janitor.sweep", { removed: removed.length });
+    return removed;
   }
 
   // The opaque projection returned to clients — exactly the §3.1 fields.
