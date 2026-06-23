@@ -339,7 +339,7 @@ struct GlassBottomBar: View {
             .buttonStyle(.plain)
             Spacer()
             Button { tab = .arbre } label: {
-                Text("Arbre")
+                Text("Ciel")
                     .font(Typo.serif(16))
                     .foregroundStyle(tab == .arbre ? Palette.ink : Palette.faint)
             }
