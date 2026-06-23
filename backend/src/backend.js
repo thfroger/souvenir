@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, createPublicKey, verify, randomBytes } from "node:crypto";
 
 // The deliberately dumb backend (ARCHITECTURE.md §1, §3.1): an encrypted-blob
 // store + opaque metadata rows. It performs NO content processing, NO indexing,
@@ -25,12 +25,18 @@ export class Backend {
     this.entries = []; // opaque metadata rows
     this.seqByVault = new Map(); // vault_id -> monotonic seq
     this.logs = []; // content-free structured logs (SECURITY.md §6.2)
-    // token -> set of owned vaults. A real deployment derives this from auth;
-    // here it is seeded for the tests.
-    this.access = new Map([
-      ["tok-A", new Set(["vault-A"])],
-      ["tok-B", new Set(["vault-B"])],
-    ]);
+
+    // Auth (passkey-equivalent): a device registers a P-256 public key bound to a
+    // vault, then proves possession by signing a server challenge. A successful
+    // verify mints a short-lived session token. No shared secret is ever stored.
+    this.credentials = new Map(); // credentialID -> { keyObject, vault }
+    this.challenges = new Map();  // challenge(b64) -> expiresAt(ms), single-use
+    this.sessions = new Map();    // sessionToken -> vault
+
+    // Dev/test convenience: pre-seeded sessions so the storage/authorization
+    // tests don't each re-run the auth handshake. The app uses the real flow.
+    this.sessions.set("tok-A", "vault-A");
+    this.sessions.set("tok-B", "vault-B");
   }
 
   // Logs carry only an event type + opaque ids — never a wrapped key, never
@@ -40,15 +46,57 @@ export class Backend {
   }
 
   owns(token, vaultId) {
-    return this.access.get(token)?.has(vaultId) ?? false;
+    return this.sessions.get(token) === vaultId;
   }
 
   handle({ method, path, query = {}, token, body } = {}) {
     const parts = path.split("/").filter(Boolean);
 
+    // POST /auth/register — bind a device P-256 public key to a vault.
+    if (method === "POST" && parts[0] === "auth" && parts[1] === "register") {
+      const { credential_id, public_key, vault } = body ?? {};
+      if (!credential_id || !public_key || !vault) return { status: 400, body: { error: "missing_fields" } };
+      let keyObject;
+      try { keyObject = this.publicKeyFromX963(public_key); } catch { return { status: 400, body: { error: "bad_public_key" } }; }
+      // Skeleton: first registrant claims the vault; a real system gates new
+      // devices (existing-device approval / vault proof). Re-registering the same
+      // credential is idempotent.
+      this.credentials.set(credential_id, { keyObject, vault });
+      this.log("auth.register", { credential_id, vault });
+      return { status: 200, body: { ok: true } };
+    }
+
+    // POST /auth/challenge — issue a single-use, short-lived challenge.
+    if (method === "POST" && parts[0] === "auth" && parts[1] === "challenge") {
+      const challenge = randomBytes(32).toString("base64");
+      this.challenges.set(challenge, Date.now() + 120_000);
+      this.log("auth.challenge", {});
+      return { status: 200, body: { challenge } };
+    }
+
+    // POST /auth/verify — verify a signed challenge → mint a session token.
+    if (method === "POST" && parts[0] === "auth" && parts[1] === "verify") {
+      const { credential_id, challenge, signature } = body ?? {};
+      const cred = this.credentials.get(credential_id);
+      const expiresAt = this.challenges.get(challenge);
+      if (!cred || expiresAt === undefined) return { status: 401, body: { error: "unknown_credential_or_challenge" } };
+      this.challenges.delete(challenge); // single-use, even on failure → no replay
+      if (Date.now() > expiresAt) return { status: 401, body: { error: "challenge_expired" } };
+      let ok = false;
+      try {
+        ok = verify("sha256", Buffer.from(challenge, "base64"),
+          { key: cred.keyObject, dsaEncoding: "der" }, Buffer.from(signature ?? "", "base64"));
+      } catch { ok = false; }
+      if (!ok) return { status: 401, body: { error: "bad_signature" } };
+      const session = randomBytes(24).toString("base64");
+      this.sessions.set(session, cred.vault);
+      this.log("auth.verify", { credential_id, vault: cred.vault });
+      return { status: 200, body: { token: session, vault: cred.vault } };
+    }
+
     // PUT /blobs/:hash  — store an opaque, content-addressed encrypted blob.
     if (method === "PUT" && parts[0] === "blobs" && parts.length === 2) {
-      if (!this.access.has(token)) return { status: 401, body: { error: "unauthenticated" } };
+      if (!this.sessions.has(token)) return { status: 401, body: { error: "unauthenticated" } };
       const hash = parts[1];
       const bytes = Buffer.from(body?.data_b64 ?? "", "base64");
       const actual = createHash("sha256").update(bytes).digest("hex");
@@ -61,7 +109,7 @@ export class Backend {
     // GET /blobs/:hash — fetch an opaque blob; allowed only if the caller owns a
     // vault that references it (SECURITY.md §6.1).
     if (method === "GET" && parts[0] === "blobs" && parts.length === 2) {
-      if (!this.access.has(token)) return { status: 401, body: { error: "unauthenticated" } };
+      if (!this.sessions.has(token)) return { status: 401, body: { error: "unauthenticated" } };
       const hash = parts[1];
       const referenced = this.entries.some(
         (e) => e.blob_hash === hash && this.owns(token, e.vault_id),
@@ -76,7 +124,7 @@ export class Backend {
     // POST /vaults/:vaultId/entries — create a pending opaque metadata row.
     if (method === "POST" && parts[0] === "vaults" && parts[2] === "entries" && parts.length === 3) {
       const vaultId = parts[1];
-      if (!this.access.has(token)) return { status: 401, body: { error: "unauthenticated" } };
+      if (!this.sessions.has(token)) return { status: 401, body: { error: "unauthenticated" } };
       if (!this.owns(token, vaultId)) return { status: 403, body: { error: "forbidden" } };
 
       const keys = Object.keys(body ?? {});
@@ -151,6 +199,17 @@ export class Backend {
     }
     this.log("janitor.sweep", { removed: removed.length });
     return removed;
+  }
+
+  // P-256 public key from the X9.63 representation (0x04 || X || Y) that Apple's
+  // SecKey / CryptoKit produces, as a verifiable key object.
+  publicKeyFromX963(b64) {
+    const raw = Buffer.from(b64, "base64");
+    if (raw.length !== 65 || raw[0] !== 0x04) throw new Error("bad x963");
+    return createPublicKey({
+      key: { kty: "EC", crv: "P-256", x: raw.subarray(1, 33).toString("base64url"), y: raw.subarray(33, 65).toString("base64url") },
+      format: "jwk",
+    });
   }
 
   // The opaque projection returned to clients — exactly the §3.1 fields.
