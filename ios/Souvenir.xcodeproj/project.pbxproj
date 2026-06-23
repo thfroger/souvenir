@@ -283,6 +283,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Souvenir/Info.plist;
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Déverrouille tes souvenirs avec Face ID.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Pour enregistrer les notes vocales de votre enfant — l'audio reste chiffré sur l'appareil.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndoorMaps = NO;
@@ -306,6 +307,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Souvenir/Info.plist;
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Déverrouille tes souvenirs avec Face ID.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Pour enregistrer les notes vocales de votre enfant — l'audio reste chiffré sur l'appareil.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndoorMaps = NO;
