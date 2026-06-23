@@ -36,10 +36,10 @@ struct AddSheetView: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 Text("Garder un souvenir")
-                    .font(.system(size: 24, design: .serif))
+                    .font(Typo.serif(24))
                     .foregroundStyle(Palette.ink)
                 Text("de \(childName) — aujourd'hui")
-                    .font(.system(.subheadline, design: .monospaced))
+                    .font(Typo.mono(14))
                     .foregroundStyle(Palette.muted)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -64,7 +64,7 @@ struct AddSheetView: View {
                 .symbolRenderingMode(.monochrome)
                 .foregroundStyle(kind.color)
             Text(kind.label)
-                .font(.footnote)
+                .font(Typo.sans(13))
                 .foregroundStyle(Palette.ink)
         }
         .frame(maxWidth: .infinity)
