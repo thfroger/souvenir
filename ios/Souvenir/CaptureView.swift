@@ -22,17 +22,27 @@ struct CaptureView: View {
     private var heading: String {
         switch kind {
         case .photo: return "Une photo"
+        case .drawing: return "Un dessin"
         case .voice: return "Une note vocale"
         case .measure: return "Une mesure"
+        case .milestone: return "Un jalon"
         default: return "Une petite phrase"
         }
     }
 
     private var canSave: Bool {
         switch kind {
-        case .photo: return pickedImage != nil
+        case .photo, .drawing: return pickedImage != nil
         case .voice: return recorder.finishedURL != nil
         default: return !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
+    }
+
+    private var textPlaceholder: String {
+        switch kind {
+        case .measure: return "ex. 78 cm"
+        case .milestone: return "ex. Première dent"
+        default: return "« ce qu'iel a dit »"
         }
     }
 
@@ -47,9 +57,9 @@ struct CaptureView: View {
                     .foregroundStyle(Palette.faint)
 
                 switch kind {
-                case .photo: photoField
+                case .photo, .drawing: photoField
                 case .voice: voiceField
-                default: textFields
+                default: textFields // citation, measure, milestone
                 }
 
                 Spacer()
@@ -128,7 +138,7 @@ struct CaptureView: View {
     }
 
     @ViewBuilder private var textFields: some View {
-        TextField(kind == .measure ? "ex. 78 cm" : "« ce qu'iel a dit »", text: $text, axis: .vertical)
+        TextField(textPlaceholder, text: $text, axis: .vertical)
             .font(kind == .citation ? Typo.serif(22) : Typo.sans(20))
             .foregroundStyle(Palette.ink)
             .focused($focused)
@@ -157,8 +167,8 @@ struct CaptureView: View {
                         Image(uiImage: ui).resizable().scaledToFill()
                     } else {
                         VStack(spacing: 10) {
-                            Image(systemName: "camera").font(.system(size: 28)).foregroundStyle(Palette.bleu)
-                            Text("Choisir une photo").font(Typo.sans(15)).foregroundStyle(Palette.muted)
+                            Image(systemName: kind == .drawing ? "scribble.variable" : "camera").font(.system(size: 28)).foregroundStyle(Palette.bleu)
+                            Text(kind == .drawing ? "Choisir un dessin" : "Choisir une photo").font(Typo.sans(15)).foregroundStyle(Palette.muted)
                         }
                     }
                 }
@@ -187,9 +197,10 @@ struct CaptureView: View {
         switch kind {
         case .citation: store.addCitation(childID: childID, quote: text, title: title)
         case .measure: store.addMeasure(childID: childID, value: text)
+        case .milestone: store.addMilestone(childID: childID, label: text)
         case .photo: if let data = pickedImage { store.addPhoto(childID: childID, imageData: data, title: title) }
+        case .drawing: if let data = pickedImage { store.addPhoto(childID: childID, imageData: data, kind: .drawing, title: title) }
         case .voice: if let data = recorder.recordedData() { store.addVoice(childID: childID, audioData: data, duration: recorder.durationLabel) }
-        default: break
         }
         onClose()
     }
