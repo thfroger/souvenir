@@ -11,10 +11,21 @@ struct Child: Identifiable {
     let avatar: [Color] // two-pastel gradient
 }
 
-enum MemoryKind: Identifiable {
+enum MemoryKind: String, Identifiable, Codable {
     case photo, voice, citation, milestone, measure, drawing
 
     var id: Self { self }
+
+    /// Pastel pair for placeholders / thumbnail tints (derived, not persisted).
+    var gradient: [Color] {
+        switch self {
+        case .photo, .drawing: return [Palette.bleu, Palette.vert]
+        case .voice: return [Palette.peche, Palette.jaune]
+        case .citation: return [Palette.lilas, Palette.rose]
+        case .milestone: return [Palette.vert, Palette.jaune]
+        case .measure: return [Palette.jaune, Palette.peche]
+        }
+    }
 
     var meta: String {
         switch self {

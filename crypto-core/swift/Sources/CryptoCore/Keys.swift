@@ -25,7 +25,7 @@ public typealias MasterIdentityKey = SymmetricKey // MIK — the user's only tru
 public typealias RecoveryKey = SymmetricKey       // RK — Shamir-split across guardians (§5)
 
 /// A key encrypted under another key.
-public struct WrappedKey: Equatable {
+public struct WrappedKey: Equatable, Codable {
     public let sealed: AEAD.Sealed
     public init(sealed: AEAD.Sealed) { self.sealed = sealed }
 }

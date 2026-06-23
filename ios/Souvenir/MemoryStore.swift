@@ -1,5 +1,7 @@
 import SwiftUI
 import UIKit
+import Foundation
+import Security
 import CryptoCore
 
 /// Re-encodes an image to JPEG, which drops EXIF/GPS metadata (SECURITY.md §8.1),
@@ -20,36 +22,81 @@ enum ImageTools {
     }
 }
 
-/// A minimal on-device memory store that exercises the real crypto path
-/// (SECURITY.md §3): each entry's text content is encrypted with a per-entry
-/// data key (DEK), itself wrapped under a vault key (VK). The Frise/Arbre read
-/// decrypted `Memory` values from here.
+/// The vault key (VK) lives in the Keychain so encrypted memories survive
+/// relaunches (SECURITY.md §3). AfterFirstUnlockThisDeviceOnly: not synced, not
+/// in backups, available once the device has been unlocked.
+enum VaultKeychain {
+    private static let service = "app.souvenir.vault"
+    private static let account = "vaultKey"
+
+    static func loadOrCreate() -> SymmetricKey {
+        if let data = load(), let key = try? SymmetricKey(bytes: [UInt8](data)) { return key }
+        let key = (try? VaultKey.generate()) ?? ((try? SymmetricKey(bytes: [UInt8](repeating: 0, count: 32)))!)
+        save(Data(key.bytes))
+        return key
+    }
+
+    private static func load() -> Data? {
+        let q: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne,
+        ]
+        var item: CFTypeRef?
+        return SecItemCopyMatching(q as CFDictionary, &item) == errSecSuccess ? item as? Data : nil
+    }
+
+    private static func save(_ data: Data) {
+        let base: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account,
+        ]
+        SecItemDelete(base as CFDictionary)
+        var add = base
+        add[kSecValueData as String] = data
+        add[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+        SecItemAdd(add as CFDictionary, nil)
+    }
+}
+
+/// On-device memory store (SECURITY.md §3). Each entry's text content and media
+/// blob are encrypted with a per-entry data key (DEK), wrapped under the
+/// Keychain-held vault key (VK). Entries persist to disk; the Frise/Arbre read
+/// decrypted `Memory` values.
 ///
-/// Scope of this slice: in-memory only, VK generated per launch. Persistence
-/// (VK in the Keychain, encrypted blobs on disk) and server upload are the next
-/// step — but the encrypt → wrap → unwrap → decrypt round-trip is real, not faked.
+/// At rest, the index fields (child/kind/date) are still cleartext — encrypting
+/// the index file under the VK is a §6.4 hardening for later. Server upload is
+/// the next step.
 @MainActor
 final class MemoryStore: ObservableObject {
     private struct Content: Codable { let title: String; let note: String? }
 
-    private struct Entry: Identifiable {
-        let id = UUID()
+    private struct StoredEntry: Codable {
+        let id: UUID
         let childID: UUID
         let kind: MemoryKind
         let createdAt: Date
-        let pastel: [Color]
         let audio: String?
-        let sealed: AEAD.Sealed      // encrypted Content
-        let sealedBlob: AEAD.Sealed? // encrypted media blob (image or audio, same DEK), if any
-        let wrappedKey: WrappedKey   // per-entry DEK wrapped under the VK
+        let sealed: AEAD.Sealed       // encrypted Content
+        let sealedBlob: AEAD.Sealed?  // encrypted media blob (image or audio), if any
+        let wrappedKey: WrappedKey    // per-entry DEK wrapped under the VK
     }
 
     private let vaultKey: SymmetricKey
-    @Published private var entries: [Entry] = []
+    private let fileURL: URL
+    @Published private var entries: [StoredEntry] = []
 
     init() {
-        vaultKey = (try? VaultKey.generate()) ?? ((try? SymmetricKey(bytes: [UInt8](repeating: 0, count: 32))) ?? Self.placeholderKey)
-        seedFromSamples()
+        vaultKey = VaultKeychain.loadOrCreate()
+        fileURL = Self.makeFileURL()
+        if let loaded = Self.load(from: fileURL) {
+            entries = loaded
+        } else {
+            seedFromSamples()
+        }
     }
 
     // MARK: read
@@ -67,47 +114,41 @@ final class MemoryStore: ObservableObject {
         let t = title.trimmingCharacters(in: .whitespacesAndNewlines)
         add(childID: childID, kind: .citation,
             title: t.isEmpty ? "Citation" : t,
-            note: "« \(quote.trimmingCharacters(in: .whitespacesAndNewlines)) »",
-            pastel: [Palette.lilas, Palette.rose])
+            note: "« \(quote.trimmingCharacters(in: .whitespacesAndNewlines)) »")
     }
 
     func addMeasure(childID: UUID, value: String) {
-        add(childID: childID, kind: .measure,
-            title: value.trimmingCharacters(in: .whitespacesAndNewlines),
-            note: nil,
-            pastel: [Palette.jaune, Palette.peche])
+        add(childID: childID, kind: .measure, title: value.trimmingCharacters(in: .whitespacesAndNewlines), note: nil)
+    }
+
+    func addPhoto(childID: UUID, imageData: Data) {
+        guard let stripped = ImageTools.stripExifJPEG(imageData) else { return }
+        add(childID: childID, kind: .photo, title: "Photo", note: nil, blob: stripped)
+    }
+
+    func addVoice(childID: UUID, audioData: Data, duration: String) {
+        add(childID: childID, kind: .voice, title: "Note vocale", note: nil, audio: duration, blob: audioData)
     }
 
     // MARK: crypto core path
 
     private func add(childID: UUID, kind: MemoryKind, title: String, note: String?,
-                     pastel: [Color], audio: String? = nil, blob: Data? = nil, createdAt: Date = Date()) {
+                     audio: String? = nil, blob: Data? = nil, createdAt: Date = Date(), persistNow: Bool = true) {
         guard let payload = try? JSONEncoder().encode(Content(title: title, note: note)) else { return }
         do {
             let dek = try DataKey.generate()
             let sealed = try AEAD.seal(Array(payload), key: dek.bytes)
             let sealedBlob = try blob.map { try AEAD.seal(Array($0), key: dek.bytes) }
             let wrapped = try KeyWrap.wrap(dek, under: vaultKey)
-            entries.append(Entry(childID: childID, kind: kind, createdAt: createdAt,
-                                 pastel: pastel, audio: audio, sealed: sealed,
-                                 sealedBlob: sealedBlob, wrappedKey: wrapped))
+            entries.append(StoredEntry(id: UUID(), childID: childID, kind: kind, createdAt: createdAt,
+                                       audio: audio, sealed: sealed, sealedBlob: sealedBlob, wrappedKey: wrapped))
+            if persistNow { persist() }
         } catch {
             // A failed encrypt must never surface a half-written entry (SECURITY.md §1.6).
         }
     }
 
-    func addPhoto(childID: UUID, imageData: Data) {
-        guard let stripped = ImageTools.stripExifJPEG(imageData) else { return }
-        add(childID: childID, kind: .photo, title: "Photo", note: nil,
-            pastel: [Palette.bleu, Palette.vert], blob: stripped)
-    }
-
-    func addVoice(childID: UUID, audioData: Data, duration: String) {
-        add(childID: childID, kind: .voice, title: "Note vocale", note: nil,
-            pastel: [Palette.peche, Palette.jaune], audio: duration, blob: audioData)
-    }
-
-    private func decrypt(_ e: Entry) -> Memory? {
+    private func decrypt(_ e: StoredEntry) -> Memory? {
         guard
             let dek = try? KeyWrap.unwrap(e.wrappedKey, with: vaultKey),
             let plain = try? AEAD.open(e.sealed, key: dek.bytes),
@@ -117,21 +158,37 @@ final class MemoryStore: ObservableObject {
         let days = max(0, Calendar.current.dateComponents([.day], from: e.createdAt, to: Date()).day ?? 0)
         let blob = e.sealedBlob.flatMap { try? AEAD.open($0, key: dek.bytes) }.map { Data($0) }
         return Memory(childID: e.childID, kind: e.kind, daysAgo: days,
-                      title: content.title, note: content.note, audio: e.audio, pastel: e.pastel,
+                      title: content.title, note: content.note, audio: e.audio, pastel: e.kind.gradient,
                       imageData: e.kind.hasPhoto ? blob : nil,
                       audioData: e.kind == .voice ? blob : nil)
     }
 
-    // MARK: seed (encrypt the sample memories so the Frise has content)
+    // MARK: persistence
+
+    private func persist() {
+        guard let data = try? JSONEncoder().encode(entries) else { return }
+        try? data.write(to: fileURL, options: .atomic)
+    }
+
+    private static func load(from url: URL) -> [StoredEntry]? {
+        guard let data = try? Data(contentsOf: url) else { return nil }
+        return try? JSONDecoder().decode([StoredEntry].self, from: data)
+    }
+
+    private static func makeFileURL() -> URL {
+        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("Souvenir", isDirectory: true)
+        try? FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
+        return base.appendingPathComponent("memories.json")
+    }
 
     private func seedFromSamples() {
         for child in SampleData.children {
             for m in SampleData.memories(for: child) {
                 add(childID: child.id, kind: m.kind, title: m.title, note: m.note,
-                    pastel: m.pastel, audio: m.audio, createdAt: m.date)
+                    audio: m.audio, createdAt: m.date, persistNow: false)
             }
         }
+        persist()
     }
-
-    private static let placeholderKey = try! SymmetricKey(bytes: [UInt8](repeating: 1, count: 32))
 }

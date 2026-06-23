@@ -96,6 +96,7 @@ struct CaptureView: View {
         .padding(.vertical, 30)
         .background(.white, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 20).stroke(Palette.divider, lineWidth: 1))
+        .onReceive(Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()) { _ in recorder.refresh() }
     }
 
     private var statusLabel: String {
