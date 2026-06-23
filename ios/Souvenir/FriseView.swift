@@ -3,7 +3,7 @@ import SwiftUI
 /// The Frise (home, level 1) — DESIGN.md §3.A, recreated hi-fi.
 /// Header · child selector · surprise card · "cette semaine" timeline · glass bar.
 struct FriseView: View {
-    @State private var selectedChildID: UUID = SampleData.lea.id
+    @Binding var selectedChildID: UUID
     @State private var showSettings = false
     @State private var openedMemory: Memory?
 
@@ -43,8 +43,6 @@ struct FriseView: View {
                 .padding(.top, 8)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-
-            GlassBottomBar()
         }
         .sheet(isPresented: $showSettings) {
             // The header sliders button is the Réglages hub entry (DESIGN_INTEGRATION §9);
@@ -294,21 +292,30 @@ struct DiagonalStripes: View {
 // MARK: - Floating glass bottom bar (the ONLY glass element, DESIGN.md §2)
 
 struct GlassBottomBar: View {
+    @Binding var tab: ContentView.Tab
+
     var body: some View {
         HStack {
-            Text("Frise")
-                .font(.system(.callout, design: .serif))
-                .foregroundStyle(Palette.ink)
+            Button { tab = .frise } label: {
+                Text("Frise")
+                    .font(.system(.callout, design: .serif))
+                    .foregroundStyle(tab == .frise ? Palette.ink : Palette.faint)
+            }
+            .buttonStyle(.plain)
             Spacer()
+            // ＋ opens the Ajout sheet (écran D) — to build.
             Image(systemName: "plus")
                 .font(.headline)
                 .foregroundStyle(.white)
                 .frame(width: 48, height: 48)
                 .background(Palette.ink, in: Circle())
             Spacer()
-            Text("Arbre")
-                .font(.system(.callout, design: .serif))
-                .foregroundStyle(Palette.faint)
+            Button { tab = .arbre } label: {
+                Text("Arbre")
+                    .font(.system(.callout, design: .serif))
+                    .foregroundStyle(tab == .arbre ? Palette.ink : Palette.faint)
+            }
+            .buttonStyle(.plain)
         }
         .padding(.horizontal, 28)
         .padding(.vertical, 8)
@@ -321,5 +328,5 @@ struct GlassBottomBar: View {
 }
 
 #Preview {
-    FriseView()
+    FriseView(selectedChildID: .constant(SampleData.lea.id))
 }
