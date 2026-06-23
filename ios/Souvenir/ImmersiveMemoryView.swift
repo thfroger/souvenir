@@ -46,7 +46,7 @@ struct ImmersiveMemoryView: View {
             ZStack {
                 LinearGradient(colors: memory.pastel, startPoint: .topLeading, endPoint: .bottomTrailing)
                 Text("\u{201C}")
-                    .font(.system(size: 120, design: .serif))
+                    .font(Typo.serif(120))
                     .foregroundStyle(.white.opacity(0.7))
             }
         case .photo, .drawing:
@@ -77,22 +77,22 @@ struct ImmersiveMemoryView: View {
     private var sheet: some View {
         VStack(alignment: .leading, spacing: 18) {
             Text(metaLine)
-                .font(.system(.caption2, design: .monospaced))
+                .font(Typo.mono(11))
                 .tracking(1.5)
                 .foregroundStyle(Color(hex: 0xB3A591))
 
             Text(memory.title)
-                .font(.system(size: 36, design: .serif))
+                .font(Typo.serif(36))
                 .foregroundStyle(Palette.ink)
                 .fixedSize(horizontal: false, vertical: true)
 
             if memory.kind == .citation, let quote = memory.note {
                 Text(quote)
-                    .font(.system(size: 26, design: .serif))
+                    .font(Typo.serif(26))
                     .foregroundStyle(Palette.inkSoft)
             } else if let note = memory.note {
                 Text(note)
-                    .font(.system(size: 15))
+                    .font(Typo.sans(15))
                     .lineSpacing(5)
                     .foregroundStyle(Palette.inkSoft)
                     .fixedSize(horizontal: false, vertical: true)
@@ -105,7 +105,7 @@ struct ImmersiveMemoryView: View {
             if memory.kind == .milestone {
                 HStack(spacing: 8) {
                     Image(systemName: "leaf").foregroundStyle(Palette.vert)
-                    Text("Jalon").font(.system(.subheadline, design: .serif)).foregroundStyle(Palette.ink)
+                    Text("Jalon").font(Typo.serif(15)).foregroundStyle(Palette.ink)
                 }
                 .padding(.vertical, 10)
                 .padding(.horizontal, 16)
@@ -139,21 +139,21 @@ struct VoicePlayerView: View {
             HStack(spacing: 12) {
                 Button { playing.toggle() } label: {
                     Image(systemName: playing ? "pause.fill" : "play.fill")
-                        .font(.system(size: 15))
+                        .font(Typo.sans(15))
                         .foregroundStyle(.white)
                         .frame(width: 42, height: 42)
                         .background(Palette.accent, in: Circle())
                 }
                 waveform
                 Text(duration)
-                    .font(.system(.caption2, design: .monospaced))
+                    .font(Typo.mono(11))
                     .foregroundStyle(Palette.muted)
             }
             .padding(14)
             .background(.white, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
 
             Text(caption)
-                .font(.system(size: 12))
+                .font(Typo.sans(12))
                 .foregroundStyle(Color(hex: 0xA89C8E))
         }
         .onReceive(Timer.publish(every: 0.05, on: .main, in: .common).autoconnect()) { _ in

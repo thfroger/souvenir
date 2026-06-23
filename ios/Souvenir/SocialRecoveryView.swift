@@ -39,7 +39,7 @@ struct SocialRecoveryView: View {
         VStack(alignment: .leading, spacing: 22) {
             monoLabel("RÉCUPÉRATION SOCIALE")
             Text("Un filet pour les souvenirs de \(model.childName).")
-                .font(.system(size: 34, design: .serif))
+                .font(Typo.serif(34))
                 .foregroundStyle(Palette.ink)
                 .fixedSize(horizontal: false, vertical: true)
 
@@ -61,7 +61,7 @@ struct SocialRecoveryView: View {
         VStack(alignment: .leading, spacing: 22) {
             monoLabel("TROIS GARDIENS · DEUX SUFFISENT")
             Text("Qui veillera sur ces souvenirs ?")
-                .font(.system(size: 30, design: .serif))
+                .font(Typo.serif(30))
                 .foregroundStyle(Palette.ink)
 
             VStack(spacing: 12) {
@@ -71,11 +71,11 @@ struct SocialRecoveryView: View {
             }
 
             Text("Deux d'entre eux, ensemble, pourront t'aider à revenir. Aucun ne peut rien faire seul.")
-                .font(.footnote)
+                .font(Typo.sans(13))
                 .foregroundStyle(Palette.muted)
 
             if let error = model.errorMessage {
-                Text(error).font(.footnote).foregroundStyle(.red)
+                Text(error).font(Typo.sans(13)).foregroundStyle(.red)
             }
 
             primaryButton("Tisser le filet", enabled: model.canSeal) {
@@ -91,7 +91,7 @@ struct SocialRecoveryView: View {
                 .foregroundStyle(Palette.accent)
                 .frame(width: 22)
             TextField("Prénom d'un proche", text: guardian.name)
-                .font(.body)
+                .font(Typo.sans(16))
                 .foregroundStyle(Palette.ink)
                 .textInputAutocapitalization(.words)
         }
@@ -107,7 +107,7 @@ struct SocialRecoveryView: View {
         VStack(alignment: .leading, spacing: 22) {
             monoLabel("LE FILET EST TISSÉ")
             Text("C'est en sécurité.")
-                .font(.system(size: 34, design: .serif))
+                .font(Typo.serif(34))
                 .foregroundStyle(Palette.ink)
 
             Text("\(sentenceList(model.trimmedNames)) veillent désormais. Chacun reçoit une part qui, seule, ne révèle rien.")
@@ -118,10 +118,10 @@ struct SocialRecoveryView: View {
                     HStack(spacing: 12) {
                         Image(systemName: "checkmark.shield")
                             .foregroundStyle(Palette.accent)
-                        Text(name).font(.body).foregroundStyle(Palette.ink)
+                        Text(name).font(Typo.sans(16)).foregroundStyle(Palette.ink)
                         Spacer()
                         Text("part prête")
-                            .font(.system(.caption2, design: .monospaced))
+                            .font(Typo.mono(11))
                             .foregroundStyle(Palette.muted)
                     }
                     .padding(.vertical, 12)
@@ -131,7 +131,7 @@ struct SocialRecoveryView: View {
             }
 
             Text("AUCUNE PART NE QUITTE CET APPAREIL EN CLAIR · 2 SUR 3 SUFFISENT · NOUS NE POUVONS JAMAIS RÉCUPÉRER À TA PLACE")
-                .font(.system(size: 9, design: .monospaced))
+                .font(Typo.mono(9))
                 .tracking(1)
                 .foregroundStyle(Palette.muted)
                 .padding(.top, 4)
@@ -144,7 +144,7 @@ struct SocialRecoveryView: View {
 
     private func monoLabel(_ text: String) -> some View {
         Text(text)
-            .font(.system(.caption2, design: .monospaced))
+            .font(Typo.mono(11))
             .tracking(2)
             .foregroundStyle(Palette.muted)
     }
@@ -152,7 +152,7 @@ struct SocialRecoveryView: View {
     private func careCard(icon: String, _ text: String) -> some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: icon).foregroundStyle(Palette.accent)
-            Text(text).font(.subheadline).foregroundStyle(Palette.inkSoft)
+            Text(text).font(Typo.sans(15)).foregroundStyle(Palette.inkSoft)
         }
         .padding(16)
         .background(Palette.paperAlt, in: RoundedRectangle(cornerRadius: 18))
@@ -161,7 +161,7 @@ struct SocialRecoveryView: View {
     private func primaryButton(_ title: String, enabled: Bool = true, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Text(title)
-                .font(.headline)
+                .font(Typo.sans(17, .semibold))
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 16)
@@ -182,7 +182,7 @@ struct SocialRecoveryView: View {
 
 private extension Text {
     func bodyStyle() -> some View {
-        self.font(.body)
+        self.font(Typo.sans(16))
             .foregroundStyle(Palette.inkSoft)
             .lineSpacing(4)
             .fixedSize(horizontal: false, vertical: true)

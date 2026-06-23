@@ -70,11 +70,11 @@ struct ArbreView: View {
     private var title: some View {
         VStack(spacing: 6) {
             Text("L'ARBRE DE")
-                .font(.system(.caption2, design: .monospaced))
+                .font(Typo.mono(11))
                 .tracking(3)
                 .foregroundStyle(Palette.muted)
             Text(child.name)
-                .font(.system(size: 32, design: .serif))
+                .font(Typo.serif(32))
                 .foregroundStyle(Palette.ink)
         }
     }
@@ -113,11 +113,11 @@ struct ArbreView: View {
             Rectangle().fill(Palette.accent).frame(width: 16, height: 1.5)
             VStack(alignment: .leading, spacing: 2) {
                 Text(m.ageLabel)
-                    .font(.system(.caption2, design: .monospaced))
+                    .font(Typo.mono(11))
                     .tracking(1)
                     .foregroundStyle(Palette.faint)
                 Text(m.label)
-                    .font(.system(size: 15, design: .serif))
+                    .font(Typo.serif(15))
                     .foregroundStyle(Palette.ink)
             }
             .padding(.vertical, 9)
@@ -138,11 +138,11 @@ struct ArbreView: View {
     private func statCard(_ label: String, _ value: String) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(label)
-                .font(.system(.caption2, design: .monospaced))
+                .font(Typo.mono(11))
                 .tracking(1.5)
                 .foregroundStyle(Palette.muted)
             Text(value)
-                .font(.system(size: 26, design: .serif))
+                .font(Typo.serif(26))
                 .foregroundStyle(Palette.ink)
         }
         .frame(maxWidth: .infinity, alignment: .leading)

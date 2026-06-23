@@ -33,7 +33,7 @@ struct FriseView: View {
                     }
                     .buttonStyle(.plain)
                     Text("CETTE SEMAINE")
-                        .font(.system(.caption2, design: .monospaced))
+                        .font(Typo.mono(11))
                         .tracking(2)
                         .foregroundStyle(Palette.muted)
                     timeline
@@ -66,11 +66,11 @@ struct FriseView: View {
         HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: 6) {
                 Text(todayLabel)
-                    .font(.system(.caption, design: .monospaced))
+                    .font(Typo.mono(12))
                     .tracking(2)
                     .foregroundStyle(Palette.muted)
                 Text("Bonjour, Camille")
-                    .font(.system(size: 30, design: .serif))
+                    .font(Typo.serif(30))
                     .foregroundStyle(Palette.ink)
             }
             Spacer()
@@ -95,7 +95,7 @@ struct FriseView: View {
                         Circle()
                             .fill(LinearGradient(colors: c.avatar, startPoint: .topLeading, endPoint: .bottomTrailing))
                             .frame(width: 28, height: 28)
-                        Text(c.name).font(.subheadline.weight(.medium))
+                        Text(c.name).font(Typo.sans(15, .medium))
                     }
                     .padding(.vertical, 7)
                     .padding(.horizontal, 12)
@@ -136,7 +136,7 @@ struct SurpriseCard: View {
                 .frame(height: 188)
                 .overlay(alignment: .topLeading) {
                     Text(surprise.badge)
-                        .font(.system(size: 10, design: .monospaced))
+                        .font(Typo.mono(10))
                         .tracking(1)
                         .foregroundStyle(.white)
                         .padding(.horizontal, 10)
@@ -146,7 +146,7 @@ struct SurpriseCard: View {
                 }
                 .overlay(alignment: .bottomTrailing) {
                     Text(surprise.caption)
-                        .font(.system(size: 10, design: .monospaced))
+                        .font(Typo.mono(10))
                         .tracking(1)
                         .foregroundStyle(.white.opacity(0.9))
                         .padding(12)
@@ -154,10 +154,10 @@ struct SurpriseCard: View {
 
             VStack(alignment: .leading, spacing: 6) {
                 Text(surprise.title)
-                    .font(.system(size: 24, design: .serif))
+                    .font(Typo.serif(24))
                     .foregroundStyle(Palette.ink)
                 Text(surprise.subtitle)
-                    .font(.system(size: 13.5))
+                    .font(Typo.sans(13.5))
                     .foregroundStyle(Color(hex: 0x7A7280))
             }
             .padding(18)
@@ -189,7 +189,7 @@ struct TimelineRow: View {
 
             VStack(alignment: .leading, spacing: 8) {
                 Text(memory.dateLabel)
-                    .font(.system(.caption2, design: .monospaced))
+                    .font(Typo.mono(11))
                     .tracking(1.5)
                     .foregroundStyle(Palette.faint)
                 content
@@ -202,15 +202,15 @@ struct TimelineRow: View {
         if memory.kind == .citation {
             HStack(alignment: .top, spacing: 12) {
                 Text("\u{201C}")
-                    .font(.system(size: 52, design: .serif))
+                    .font(Typo.serif(52))
                     .foregroundStyle(Palette.ink.opacity(0.5))
                     .frame(height: 26, alignment: .top)
                 VStack(alignment: .leading, spacing: 4) {
                     Text(memory.note ?? "")
-                        .font(.system(size: 19, design: .serif))
+                        .font(Typo.serif(19))
                         .foregroundStyle(Palette.ink)
                     Text(memory.title)
-                        .font(.system(.caption, design: .monospaced))
+                        .font(Typo.mono(12))
                         .foregroundStyle(Palette.faint)
                 }
             }
@@ -224,10 +224,10 @@ struct TimelineRow: View {
                 thumbnail
                 VStack(alignment: .leading, spacing: 4) {
                     Text(memory.title)
-                        .font(.system(size: 19, design: .serif))
+                        .font(Typo.serif(19))
                         .foregroundStyle(Palette.ink)
                     Text(metaLine)
-                        .font(.system(.caption, design: .monospaced))
+                        .font(Typo.mono(12))
                         .tracking(1)
                         .foregroundStyle(Palette.faint)
                 }
@@ -299,7 +299,7 @@ struct GlassBottomBar: View {
         HStack {
             Button { tab = .frise } label: {
                 Text("Frise")
-                    .font(.system(.callout, design: .serif))
+                    .font(Typo.serif(16))
                     .foregroundStyle(tab == .frise ? Palette.ink : Palette.faint)
             }
             .buttonStyle(.plain)
@@ -315,7 +315,7 @@ struct GlassBottomBar: View {
             Spacer()
             Button { tab = .arbre } label: {
                 Text("Arbre")
-                    .font(.system(.callout, design: .serif))
+                    .font(Typo.serif(16))
                     .foregroundStyle(tab == .arbre ? Palette.ink : Palette.faint)
             }
             .buttonStyle(.plain)
