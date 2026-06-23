@@ -30,8 +30,7 @@ struct ContentView: View {
             if let k = pendingKind { pendingKind = nil; captureKind = k }
         }) {
             AddSheetView(childName: child.name) { kind in
-                // Wired: citation, mesure, photo, note vocale. Jalon/dessin come next.
-                if kind != .milestone && kind != .drawing { pendingKind = kind }
+                pendingKind = kind // all six types are wired
                 showAdd = false
             }
             .presentationDetents([.height(380)])

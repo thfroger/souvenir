@@ -179,10 +179,16 @@ final class MemoryStore: ObservableObject {
         add(childID: childID, kind: .measure, title: value.trimmingCharacters(in: .whitespacesAndNewlines), note: nil)
     }
 
-    func addPhoto(childID: UUID, imageData: Data, title: String = "Photo") {
+    func addPhoto(childID: UUID, imageData: Data, kind: MemoryKind = .photo, title: String = "") {
         guard let stripped = ImageTools.stripExifJPEG(imageData) else { return }
         let t = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        add(childID: childID, kind: .photo, title: t.isEmpty ? "Photo" : t, note: nil, blob: stripped)
+        let fallback = kind == .drawing ? "Dessin" : "Photo"
+        add(childID: childID, kind: kind, title: t.isEmpty ? fallback : t, note: nil, blob: stripped)
+    }
+
+    func addMilestone(childID: UUID, label: String) {
+        let l = label.trimmingCharacters(in: .whitespacesAndNewlines)
+        add(childID: childID, kind: .milestone, title: l.isEmpty ? "Jalon" : l, note: nil)
     }
 
     func addVoice(childID: UUID, audioData: Data, duration: String) {
