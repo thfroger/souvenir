@@ -26,55 +26,11 @@ enum ImageTools {
 /// relaunches (SECURITY.md §3). AfterFirstUnlockThisDeviceOnly: not synced, not
 /// in backups, available once the device has been unlocked.
 enum VaultKeychain {
-    private static let service = "app.souvenir.vault"
-    private static let account = "vaultKey"
-
     static func loadOrCreate() -> SymmetricKey {
-        // Primary: the Keychain (SECURITY.md §3 — Secure Enclave / Keystore-backed
-        // on a real signed device).
-        if let data = load(), let key = try? SymmetricKey(bytes: [UInt8](data)) { return key }
-        // Dev fallback: the unsigned simulator build can't use the Keychain
-        // (SecItemAdd → errSecMissingEntitlement -34018), so persist to a file to
-        // keep the dev build usable. NEVER ships: on a signed device the Keychain
-        // succeeds and this branch is unreachable.
-        if let data = loadFallback(), let key = try? SymmetricKey(bytes: [UInt8](data)) { return key }
-
+        if let data = SecureStore.load("vaultKey"), let key = try? SymmetricKey(bytes: [UInt8](data)) { return key }
         let key = (try? VaultKey.generate()) ?? ((try? SymmetricKey(bytes: [UInt8](repeating: 0, count: 32)))!)
-        if save(Data(key.bytes)) != errSecSuccess { saveFallback(Data(key.bytes)) }
+        SecureStore.save("vaultKey", Data(key.bytes))
         return key
-    }
-
-    private static var fallbackURL: URL {
-        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("vault.key")
-    }
-    private static func loadFallback() -> Data? { try? Data(contentsOf: fallbackURL) }
-    private static func saveFallback(_ data: Data) { try? data.write(to: fallbackURL, options: .completeFileProtection) }
-
-    private static func load() -> Data? {
-        let q: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: account,
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne,
-        ]
-        var item: CFTypeRef?
-        return SecItemCopyMatching(q as CFDictionary, &item) == errSecSuccess ? item as? Data : nil
-    }
-
-    @discardableResult
-    private static func save(_ data: Data) -> OSStatus {
-        let base: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: account,
-        ]
-        SecItemDelete(base as CFDictionary)
-        var add = base
-        add[kSecValueData as String] = data
-        add[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
-        return SecItemAdd(add as CFDictionary, nil)
     }
 }
 
@@ -118,7 +74,9 @@ final class MemoryStore: ObservableObject {
 
     private let vaultKey: SymmetricKey
     private let fileURL: URL
-    private let client: BackendClient?
+    private let backendURL = URL(string: "http://localhost:8787")!
+    private let vault = "vault-A"
+    private var client: BackendClient? // set after passkey-equivalent auth
     @Published private var entries: [StoredEntry] = []
     @Published private(set) var syncing = false
     @Published private(set) var syncedIDs: Set<UUID> = []
@@ -128,14 +86,26 @@ final class MemoryStore: ObservableObject {
     init() {
         vaultKey = VaultKeychain.loadOrCreate()
         fileURL = Self.makeFileURL()
-        // Best-effort sync to the local dumb backend; nil-out to run purely local.
-        client = BackendClient(baseURL: URL(string: "http://localhost:8787")!, token: "tok-A", vault: "vault-A")
         let loaded = Self.load(from: fileURL)
         entries = loaded ?? []
-        syncAll()
-        // Pull the vault from the server (multi-device). On a truly first run
-        // (no local file AND empty server) we seed the sample memories.
-        pull(seedIfEmpty: loaded == nil)
+        // Authenticate (device keypair → session token) before syncing; the app
+        // stays fully usable offline if it can't reach the backend (§2).
+        Task { @MainActor in
+            await authenticate()
+            syncAll()
+            pull(seedIfEmpty: loaded == nil)
+        }
+    }
+
+    /// Passkey-equivalent login: register the device public key (idempotent), then
+    /// challenge → sign → verify → session token. Best-effort.
+    private func authenticate() async {
+        let auth = AuthClient(baseURL: backendURL)
+        let device = DeviceIdentity.loadOrCreate()
+        await auth.register(credentialID: device.credentialID, publicKeyX963: device.publicKeyX963, vault: vault)
+        if let token = await auth.login(credentialID: device.credentialID, sign: device.sign) {
+            client = BackendClient(baseURL: backendURL, token: token, vault: vault)
+        }
     }
 
     /// Push every not-yet-synced entry. Idempotent (content-addressed blobs +
