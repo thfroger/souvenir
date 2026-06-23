@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// Immersive memory view (écran C, the design's priority screen — DESIGN.md §3.B).
 /// Rises from the bottom over the current screen; large visual + editorial sheet,
@@ -41,8 +42,11 @@ struct ImmersiveMemoryView: View {
     // MARK: header visual
 
     @ViewBuilder private var headerVisual: some View {
-        switch memory.kind {
-        case .citation:
+        if let data = memory.imageData, let ui = UIImage(data: data) {
+            Image(uiImage: ui).resizable().scaledToFill()
+        } else {
+            switch memory.kind {
+            case .citation:
             ZStack {
                 LinearGradient(colors: memory.pastel, startPoint: .topLeading, endPoint: .bottomTrailing)
                 Text("\u{201C}")
@@ -57,6 +61,7 @@ struct ImmersiveMemoryView: View {
                 Image(systemName: memory.kind.icon ?? "sparkles")
                     .font(.system(size: 46))
                     .foregroundStyle(.white.opacity(0.9))
+            }
             }
         }
     }

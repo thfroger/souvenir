@@ -63,6 +63,19 @@ struct Memory: Identifiable {
     let note: String?   // short preview, or the quote for a citation
     let audio: String?  // duration label, e.g. "0:42"
     let pastel: [Color] // gradient for the photo placeholder / thumbnail tint
+    let imageData: Data? // decrypted image for display (nil → pastel placeholder)
+
+    init(childID: UUID, kind: MemoryKind, daysAgo: Int, title: String,
+         note: String?, audio: String?, pastel: [Color], imageData: Data? = nil) {
+        self.childID = childID
+        self.kind = kind
+        self.daysAgo = daysAgo
+        self.title = title
+        self.note = note
+        self.audio = audio
+        self.pastel = pastel
+        self.imageData = imageData
+    }
 
     var date: Date {
         Calendar.current.date(byAdding: .day, value: -daysAgo, to: Date()) ?? Date()

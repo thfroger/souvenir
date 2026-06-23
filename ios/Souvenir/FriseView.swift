@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// The Frise (home, level 1) — DESIGN.md §3.A, recreated hi-fi.
 /// Header · child selector · surprise card · "cette semaine" timeline · glass bar.
@@ -243,7 +244,13 @@ struct TimelineRow: View {
     }
 
     @ViewBuilder private var thumbnail: some View {
-        if memory.kind.hasPhoto {
+        if let data = memory.imageData, let ui = UIImage(data: data) {
+            Image(uiImage: ui)
+                .resizable()
+                .scaledToFill()
+                .frame(width: 66, height: 66)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        } else if memory.kind.hasPhoto {
             PhotoPlaceholder(colors: memory.pastel)
                 .frame(width: 66, height: 66)
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
