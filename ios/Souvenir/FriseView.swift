@@ -5,6 +5,7 @@ import SwiftUI
 struct FriseView: View {
     @State private var selectedChildID: UUID = SampleData.lea.id
     @State private var showSettings = false
+    @State private var openedMemory: Memory?
 
     private var child: Child {
         SampleData.children.first { $0.id == selectedChildID } ?? SampleData.lea
@@ -25,7 +26,12 @@ struct FriseView: View {
                 VStack(alignment: .leading, spacing: 26) {
                     header
                     childSelector
-                    SurpriseCard(surprise: SampleData.surprise(for: child))
+                    Button {
+                        openedMemory = surpriseAsMemory(SampleData.surprise(for: child))
+                    } label: {
+                        SurpriseCard(surprise: SampleData.surprise(for: child))
+                    }
+                    .buttonStyle(.plain)
                     Text("CETTE SEMAINE")
                         .font(.system(.caption2, design: .monospaced))
                         .tracking(2)
@@ -45,6 +51,15 @@ struct FriseView: View {
             // for now it routes straight to social recovery, one of its destinations.
             SocialRecoveryView(childName: child.name) { showSettings = false }
         }
+        .fullScreenCover(item: $openedMemory) { memory in
+            ImmersiveMemoryView(memory: memory, child: child) { openedMemory = nil }
+        }
+    }
+
+    /// The surprise is shown immersively as a memory from `yearsAgo` back.
+    private func surpriseAsMemory(_ s: Surprise) -> Memory {
+        Memory(childID: child.id, kind: .photo, daysAgo: 365 * s.yearsAgo,
+               title: s.title, note: s.subtitle, audio: nil, pastel: s.pastel)
     }
 
     // MARK: header
@@ -106,7 +121,7 @@ struct FriseView: View {
     private var timeline: some View {
         VStack(spacing: 0) {
             ForEach(SampleData.memories(for: child)) { memory in
-                TimelineRow(memory: memory)
+                TimelineRow(memory: memory) { openedMemory = memory }
             }
         }
     }
@@ -159,8 +174,13 @@ struct SurpriseCard: View {
 
 struct TimelineRow: View {
     let memory: Memory
+    let onTap: () -> Void
 
     var body: some View {
+        Button(action: onTap) { row }.buttonStyle(.plain)
+    }
+
+    private var row: some View {
         HStack(alignment: .top, spacing: 14) {
             // rail: continuous vertical line + colored dot
             ZStack(alignment: .top) {
