@@ -19,6 +19,8 @@
 		1A0000000000000000000072 /* ArbreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000070 /* ArbreView.swift */; };
 		1A0000000000000000000082 /* AddSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000080 /* AddSheetView.swift */; };
 		1A00000000000000000000A2 /* Typography.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000000A0 /* Typography.swift */; };
+		1A00000000000000000000B2 /* MemoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000000B0 /* MemoryStore.swift */; };
+		1A00000000000000000000C2 /* CaptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000000C0 /* CaptureView.swift */; };
 		1A0000000000000000000094 /* InstrumentSerif-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000090 /* InstrumentSerif-Regular.ttf */; };
 		1A0000000000000000000095 /* InstrumentSerif-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000091 /* InstrumentSerif-Italic.ttf */; };
 		1A0000000000000000000096 /* HankenGrotesk-Variable.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000092 /* HankenGrotesk-Variable.ttf */; };
@@ -39,6 +41,8 @@
 		1A0000000000000000000070 /* ArbreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArbreView.swift; sourceTree = "<group>"; };
 		1A0000000000000000000080 /* AddSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddSheetView.swift; sourceTree = "<group>"; };
 		1A00000000000000000000A0 /* Typography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Typography.swift; sourceTree = "<group>"; };
+		1A00000000000000000000B0 /* MemoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryStore.swift; sourceTree = "<group>"; };
+		1A00000000000000000000C0 /* CaptureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureView.swift; sourceTree = "<group>"; };
 		1A0000000000000000000090 /* InstrumentSerif-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "InstrumentSerif-Regular.ttf"; sourceTree = "<group>"; };
 		1A0000000000000000000091 /* InstrumentSerif-Italic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "InstrumentSerif-Italic.ttf"; sourceTree = "<group>"; };
 		1A0000000000000000000092 /* HankenGrotesk-Variable.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "HankenGrotesk-Variable.ttf"; sourceTree = "<group>"; };
@@ -88,6 +92,8 @@
 				1A0000000000000000000070 /* ArbreView.swift */,
 				1A0000000000000000000080 /* AddSheetView.swift */,
 				1A00000000000000000000A0 /* Typography.swift */,
+				1A00000000000000000000B0 /* MemoryStore.swift */,
+				1A00000000000000000000C0 /* CaptureView.swift */,
 				1A0000000000000000000098 /* Fonts */,
 			);
 			path = Souvenir;
@@ -193,6 +199,8 @@
 				1A0000000000000000000072 /* ArbreView.swift in Sources */,
 				1A0000000000000000000082 /* AddSheetView.swift in Sources */,
 				1A00000000000000000000A2 /* Typography.swift in Sources */,
+				1A00000000000000000000B2 /* MemoryStore.swift in Sources */,
+				1A00000000000000000000C2 /* CaptureView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

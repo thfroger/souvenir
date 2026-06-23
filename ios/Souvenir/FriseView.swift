@@ -3,6 +3,7 @@ import SwiftUI
 /// The Frise (home, level 1) — DESIGN.md §3.A, recreated hi-fi.
 /// Header · child selector · surprise card · "cette semaine" timeline · glass bar.
 struct FriseView: View {
+    @EnvironmentObject private var store: MemoryStore
     @Binding var selectedChildID: UUID
     @State private var showSettings = false
     @State private var openedMemory: Memory?
@@ -118,7 +119,7 @@ struct FriseView: View {
 
     private var timeline: some View {
         VStack(spacing: 0) {
-            ForEach(SampleData.memories(for: child)) { memory in
+            ForEach(store.memories(for: child)) { memory in
                 TimelineRow(memory: memory) { openedMemory = memory }
             }
         }
@@ -332,4 +333,5 @@ struct GlassBottomBar: View {
 
 #Preview {
     FriseView(selectedChildID: .constant(SampleData.lea.id))
+        .environmentObject(MemoryStore())
 }

@@ -2,26 +2,27 @@ import SwiftUI
 
 /// Feuille d'ajout (écran D, modale) — DESIGN.md §3.D.
 /// V1 picks only the TYPE of memory: no perso/partagé choice (that's V2,
-/// DESIGN_INTEGRATION.md §0/§7). Tiles currently just dismiss; they'll route to
-/// the real capture flows later.
+/// DESIGN_INTEGRATION.md §0/§7). Picking a tile reports the kind; text types
+/// (citation/mesure) lead to capture, media types come next.
 struct AddSheetView: View {
     let childName: String
-    let onClose: () -> Void
+    let onPick: (MemoryKind) -> Void
 
-    private struct Kind: Identifiable {
+    private struct Tile: Identifiable {
         let id = UUID()
         let label: String
         let icon: String
         let color: Color
+        let kind: MemoryKind
     }
 
-    private let kinds: [Kind] = [
-        Kind(label: "Photo", icon: "camera", color: Palette.bleu),
-        Kind(label: "Note vocale", icon: "mic", color: Palette.peche),
-        Kind(label: "Citation", icon: "text.quote", color: Palette.lilas),
-        Kind(label: "Jalon", icon: "leaf", color: Palette.vert),
-        Kind(label: "Mesure", icon: "ruler", color: Palette.jaune),
-        Kind(label: "Dessin", icon: "scribble.variable", color: Palette.rose),
+    private let tiles: [Tile] = [
+        Tile(label: "Photo", icon: "camera", color: Palette.bleu, kind: .photo),
+        Tile(label: "Note vocale", icon: "mic", color: Palette.peche, kind: .voice),
+        Tile(label: "Citation", icon: "text.quote", color: Palette.lilas, kind: .citation),
+        Tile(label: "Jalon", icon: "leaf", color: Palette.vert, kind: .milestone),
+        Tile(label: "Mesure", icon: "ruler", color: Palette.jaune, kind: .measure),
+        Tile(label: "Dessin", icon: "scribble.variable", color: Palette.rose, kind: .drawing),
     ]
 
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 12), count: 3)
@@ -46,8 +47,8 @@ struct AddSheetView: View {
             .padding(.horizontal, 24)
 
             LazyVGrid(columns: columns, spacing: 12) {
-                ForEach(kinds) { kind in
-                    Button { onClose() } label: { tile(kind) }
+                ForEach(tiles) { t in
+                    Button { onPick(t.kind) } label: { tile(t) }
                         .buttonStyle(.plain)
                 }
             }
@@ -57,13 +58,13 @@ struct AddSheetView: View {
         }
     }
 
-    private func tile(_ kind: Kind) -> some View {
+    private func tile(_ t: Tile) -> some View {
         VStack(spacing: 10) {
-            Image(systemName: kind.icon)
+            Image(systemName: t.icon)
                 .font(.system(size: 24))
                 .symbolRenderingMode(.monochrome)
-                .foregroundStyle(kind.color)
-            Text(kind.label)
+                .foregroundStyle(t.color)
+            Text(t.label)
                 .font(Typo.sans(13))
                 .foregroundStyle(Palette.ink)
         }
@@ -76,7 +77,7 @@ struct AddSheetView: View {
 
 #Preview {
     Color.black.sheet(isPresented: .constant(true)) {
-        AddSheetView(childName: "Léa", onClose: {})
+        AddSheetView(childName: "Léa") { _ in }
             .presentationDetents([.height(380)])
             .presentationBackground(Palette.paper)
     }
