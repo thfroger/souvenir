@@ -1,0 +1,150 @@
+import { createHash } from "node:crypto";
+
+// The deliberately dumb backend (ARCHITECTURE.md §1, §3.1): an encrypted-blob
+// store + opaque metadata rows. It performs NO content processing, NO indexing,
+// NO per-request crypto. It can never see plaintext: the only fields it accepts
+// for an entry are opaque (a wrapped key + a blob hash). Authorization lives at
+// the blob-and-key tier (SECURITY.md §6.1), never client-side only.
+
+// The only metadata an entry row may carry (ARCHITECTURE.md §3.1). Anything else
+// — a title, note, civil date, tag, child, measure… — is content and is refused.
+const ENTRY_INPUT_FIELDS = new Set(["entry_id", "wrapped_key", "blob_hash"]);
+
+// Belt-and-suspenders denylist of content / special-category field names that
+// must never reach the server (SECURITY.md §1.4, §6.2).
+const FORBIDDEN_FIELDS = new Set([
+  "title", "note", "text", "content", "plaintext", "caption",
+  "date", "civil_date", "civilDate", "timezone",
+  "tag", "tags", "child", "child_name", "childName", "name",
+  "measure", "milestone", "quote", "transcript",
+]);
+
+export class Backend {
+  constructor() {
+    this.blobs = new Map(); // hash -> Buffer (opaque ciphertext)
+    this.entries = []; // opaque metadata rows
+    this.seqByVault = new Map(); // vault_id -> monotonic seq
+    this.logs = []; // content-free structured logs (SECURITY.md §6.2)
+    // token -> set of owned vaults. A real deployment derives this from auth;
+    // here it is seeded for the tests.
+    this.access = new Map([
+      ["tok-A", new Set(["vault-A"])],
+      ["tok-B", new Set(["vault-B"])],
+    ]);
+  }
+
+  // Logs carry only an event type + opaque ids — never a wrapped key, never
+  // blob bytes, never any content (SECURITY.md §6.2).
+  log(event, fields = {}) {
+    this.logs.push({ event, ...fields });
+  }
+
+  owns(token, vaultId) {
+    return this.access.get(token)?.has(vaultId) ?? false;
+  }
+
+  handle({ method, path, query = {}, token, body } = {}) {
+    const parts = path.split("/").filter(Boolean);
+
+    // PUT /blobs/:hash  — store an opaque, content-addressed encrypted blob.
+    if (method === "PUT" && parts[0] === "blobs" && parts.length === 2) {
+      if (!this.access.has(token)) return { status: 401, body: { error: "unauthenticated" } };
+      const hash = parts[1];
+      const bytes = Buffer.from(body?.data_b64 ?? "", "base64");
+      const actual = createHash("sha256").update(bytes).digest("hex");
+      if (actual !== hash) return { status: 400, body: { error: "hash_mismatch" } };
+      this.blobs.set(hash, bytes);
+      this.log("blob.put", { hash });
+      return { status: 200, body: { hash } };
+    }
+
+    // GET /blobs/:hash — fetch an opaque blob; allowed only if the caller owns a
+    // vault that references it (SECURITY.md §6.1).
+    if (method === "GET" && parts[0] === "blobs" && parts.length === 2) {
+      if (!this.access.has(token)) return { status: 401, body: { error: "unauthenticated" } };
+      const hash = parts[1];
+      const referenced = this.entries.some(
+        (e) => e.blob_hash === hash && this.owns(token, e.vault_id),
+      );
+      if (!referenced) return { status: 403, body: { error: "forbidden" } };
+      const bytes = this.blobs.get(hash);
+      if (!bytes) return { status: 404, body: { error: "not_found" } };
+      this.log("blob.get", { hash });
+      return { status: 200, body: { data_b64: bytes.toString("base64") } };
+    }
+
+    // POST /vaults/:vaultId/entries — create a pending opaque metadata row.
+    if (method === "POST" && parts[0] === "vaults" && parts[2] === "entries" && parts.length === 3) {
+      const vaultId = parts[1];
+      if (!this.access.has(token)) return { status: 401, body: { error: "unauthenticated" } };
+      if (!this.owns(token, vaultId)) return { status: 403, body: { error: "forbidden" } };
+
+      const keys = Object.keys(body ?? {});
+      // Refuse anything that is not opaque metadata — no path for cleartext in.
+      if (keys.some((k) => FORBIDDEN_FIELDS.has(k))) return { status: 400, body: { error: "content_refused" } };
+      if (keys.some((k) => !ENTRY_INPUT_FIELDS.has(k))) return { status: 400, body: { error: "unknown_field" } };
+      if (!body?.entry_id || !body?.wrapped_key || !body?.blob_hash) {
+        return { status: 400, body: { error: "missing_wrapped_key_or_blob" } };
+      }
+
+      // Idempotent on the client UUID (ARCHITECTURE.md §5).
+      const existing = this.entries.find((e) => e.entry_id === body.entry_id);
+      if (existing) return { status: 200, body: this.rowView(existing) };
+
+      const seq = (this.seqByVault.get(vaultId) ?? 0) + 1;
+      this.seqByVault.set(vaultId, seq);
+      const row = {
+        entry_id: body.entry_id,
+        vault_id: vaultId,
+        seq,
+        committed: false,
+        wrapped_key: body.wrapped_key,
+        blob_hash: body.blob_hash,
+        created_at: new Date().toISOString(),
+      };
+      this.entries.push(row);
+      this.log("entry.create", { entry_id: row.entry_id, vault_id: vaultId, seq });
+      return { status: 201, body: this.rowView(row) };
+    }
+
+    // POST /vaults/:vaultId/entries/:entryId/commit — mark readable after the
+    // client's re-decryption self-check (ARCHITECTURE.md §5).
+    if (method === "POST" && parts[0] === "vaults" && parts[2] === "entries" && parts[4] === "commit") {
+      const vaultId = parts[1];
+      if (!this.owns(token, vaultId)) return { status: 403, body: { error: "forbidden" } };
+      const row = this.entries.find((e) => e.entry_id === parts[3] && e.vault_id === vaultId);
+      if (!row) return { status: 404, body: { error: "not_found" } };
+      row.committed = true;
+      this.log("entry.commit", { entry_id: row.entry_id, vault_id: vaultId });
+      return { status: 200, body: this.rowView(row) };
+    }
+
+    // GET /vaults/:vaultId/entries?since=seq — delta sync of opaque rows.
+    if (method === "GET" && parts[0] === "vaults" && parts[2] === "entries" && parts.length === 3) {
+      const vaultId = parts[1];
+      if (!this.owns(token, vaultId)) return { status: 403, body: { error: "forbidden" } };
+      const since = Number(query.since ?? 0);
+      const rows = this.entries
+        .filter((e) => e.vault_id === vaultId && e.seq > since)
+        .sort((a, b) => a.seq - b.seq)
+        .map((e) => this.rowView(e));
+      this.log("entry.delta", { vault_id: vaultId, since, count: rows.length });
+      return { status: 200, body: { entries: rows } };
+    }
+
+    return { status: 404, body: { error: "no_route" } };
+  }
+
+  // The opaque projection returned to clients — exactly the §3.1 fields.
+  rowView(e) {
+    return {
+      entry_id: e.entry_id,
+      vault_id: e.vault_id,
+      seq: e.seq,
+      committed: e.committed,
+      wrapped_key: e.wrapped_key,
+      blob_hash: e.blob_hash,
+      created_at: e.created_at,
+    };
+  }
+}

@@ -27,13 +27,14 @@ jobs:
           -sdk iphonesimulator -configuration Debug
           CODE_SIGNING_ALLOWED=NO build
 
-  # ── PENDING ───────────────────────────────────────────────────────────────
-  # invariants:
-  #   name: invariants — blocking (TESTING.md §2)
-  #   runs-on: ubuntu-latest
-  #   needs the backend (`backend/`). Asserts, per route:
-  #     - no endpoint returns cleartext (only blobs / wrapped keys / opaque metadata)
-  #     - no endpoint accepts content without a wrapped key
-  #     - grep the bundle for embedded secrets / test keys / backdoors (SECURITY §1.7)
-  #     - no vault content in logs or scrubbed stack traces
-  #     - no civil date / tag in cleartext server-side (SECURITY §1.4, §6.2)
+  invariants:
+    name: invariants — blocking (TESTING.md §2)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Run invariant + authorization suites
+        working-directory: backend
+        run: node --test
