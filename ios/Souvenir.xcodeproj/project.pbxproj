@@ -17,6 +17,7 @@
 		1A0000000000000000000043 /* FriseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000041 /* FriseView.swift */; };
 		1A0000000000000000000052 /* ImmersiveMemoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000050 /* ImmersiveMemoryView.swift */; };
 		1A0000000000000000000072 /* ArbreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000070 /* ArbreView.swift */; };
+		1A0000000000000000000082 /* AddSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000080 /* AddSheetView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -31,6 +32,7 @@
 		1A0000000000000000000050 /* ImmersiveMemoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImmersiveMemoryView.swift; sourceTree = "<group>"; };
 		1A0000000000000000000060 /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = SOURCE_ROOT; };
 		1A0000000000000000000070 /* ArbreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArbreView.swift; sourceTree = "<group>"; };
+		1A0000000000000000000080 /* AddSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddSheetView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -74,6 +76,7 @@
 				1A0000000000000000000041 /* FriseView.swift */,
 				1A0000000000000000000050 /* ImmersiveMemoryView.swift */,
 				1A0000000000000000000070 /* ArbreView.swift */,
+				1A0000000000000000000080 /* AddSheetView.swift */,
 			);
 			path = Souvenir;
 			sourceTree = "<group>";
@@ -161,6 +164,7 @@
 				1A0000000000000000000043 /* FriseView.swift in Sources */,
 				1A0000000000000000000052 /* ImmersiveMemoryView.swift in Sources */,
 				1A0000000000000000000072 /* ArbreView.swift in Sources */,
+				1A0000000000000000000082 /* AddSheetView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
