@@ -74,6 +74,7 @@ struct FriseView: View {
                 Text("Bonjour, Camille")
                     .font(Typo.serif(30))
                     .foregroundStyle(Palette.ink)
+                syncStatus
             }
             Spacer()
             Button { showSettings = true } label: {
@@ -84,6 +85,22 @@ struct FriseView: View {
                     .background(Palette.chip, in: Circle())
             }
         }
+    }
+
+    // Tender sync affordance (DESIGN_INTEGRATION §8) — care, not an anxious spinner.
+    private var syncStatus: some View {
+        let s = syncLabel
+        return Label(s.text, systemImage: s.icon)
+            .font(Typo.mono(10))
+            .tracking(1)
+            .foregroundStyle(s.color)
+            .padding(.top, 2)
+    }
+
+    private var syncLabel: (text: String, icon: String, color: Color) {
+        if store.syncing { return ("synchronisation…", "arrow.triangle.2.circlepath", Palette.muted) }
+        if store.pendingSyncCount == 0 { return ("à l'abri", "checkmark.icloud", Palette.accent) }
+        return ("\(store.pendingSyncCount) en attente", "icloud.slash", Palette.faint)
     }
 
     // MARK: child selector

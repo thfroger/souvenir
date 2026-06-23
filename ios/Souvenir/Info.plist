@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Partial Info.plist merged on top of the generated one (GENERATE_INFOPLIST_FILE=YES
+     uses this as the base). Only carries keys that can't be expressed as build
+     settings — here an ATS exception so the app can reach the local dumb backend
+     over http://localhost during development. Production sync is TLS + pinning
+     (SECURITY.md §6.4); this exception is dev-only. -->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
+</dict>
+</plist>
