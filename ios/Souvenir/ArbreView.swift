@@ -2,7 +2,7 @@ import SwiftUI
 
 // Milestone shown on the tree. Linked to a memory (opens immersively).
 struct Milestone: Identifiable {
-    let id = UUID()
+    var id: UUID { memory.id }
     let label: String
     let ageLabel: String
     let ring: Color
@@ -41,10 +41,38 @@ extension SampleData {
 /// flowering milestones + stats. Background gradient paper-alt → paper.
 struct ArbreView: View {
     let childID: UUID
+    @EnvironmentObject private var store: MemoryStore
     @State private var openedMemory: Memory?
 
     private var child: Child { SampleData.children.first { $0.id == childID } ?? SampleData.lea }
-    private var milestones: [Milestone] { SampleData.milestones(for: child) }
+
+    // Captured jalons bloom on the tree (most recent highlighted). They are placed
+    // on canopy slots since a captured milestone has no hand-authored position.
+    // If none captured yet, keep the decorative samples so the tree isn't bare.
+    private var milestones: [Milestone] {
+        let captured = store.memories(for: child)
+            .filter { $0.kind == .milestone }
+            .sorted { $0.date > $1.date }
+        guard !captured.isEmpty else { return SampleData.milestones(for: child) }
+
+        let slots: [(CGFloat, CGFloat)] = [
+            (-24, -120), (78, -168), (-92, -52), (40, -150), (-78, -40), (34, -188), (92, -96), (-64, -150),
+        ]
+        let rings: [Color] = [Palette.accent, Palette.vert, Palette.peche, Palette.lilas, Palette.bleu, Palette.jaune]
+        return captured.enumerated().map { i, mem in
+            let slot = slots[i % slots.count]
+            return Milestone(label: mem.title, ageLabel: ageLabel(for: mem),
+                             ring: rings[i % rings.count], dx: slot.0, dy: slot.1,
+                             active: i == 0, memory: mem)
+        }
+    }
+
+    private func ageLabel(for mem: Memory) -> String {
+        let memYear = Calendar.current.component(.year, from: mem.date)
+        let years = max(0, memYear - child.birthYear)
+        if years <= 0 { return "BÉBÉ" }
+        return "\(years) AN" + (years > 1 ? "S" : "")
+    }
 
     var body: some View {
         ZStack {
