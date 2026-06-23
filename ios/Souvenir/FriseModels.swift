@@ -11,8 +11,10 @@ struct Child: Identifiable {
     let avatar: [Color] // two-pastel gradient
 }
 
-enum MemoryKind {
+enum MemoryKind: Identifiable {
     case photo, voice, citation, milestone, measure, drawing
+
+    var id: Self { self }
 
     var meta: String {
         switch self {
