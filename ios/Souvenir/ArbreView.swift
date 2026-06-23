@@ -75,19 +75,25 @@ struct ArbreView: View {
 
     @ViewBuilder private func dot(_ mem: Memory, index: Int, count: Int, t: Double, size: CGSize) -> some View {
         let r = Seed(mem.id)
-        let duration = 52 + r.v(1) * 40 // 52..92 s per appear→drift→fade cycle (slow & calm)
+        let duration = 22 + r.v(1) * 12 // 22..34 s per appear→drift→fade cycle
         // Phases spread evenly by index (+ small jitter) so the field is never
         // empty — a few souvenirs are always present while others come and go.
-        let phase = Double(index) / Double(max(1, count)) + r.v(2) * 0.12
+        let phase = Double(index) / Double(max(1, count)) + r.v(2) * 0.10
         let local = ((t / duration) + phase).truncatingRemainder(dividingBy: 1)
         let op = pulse(local)
         if op > 0.01 {
-            let pad: CGFloat = 48
-            let baseX = pad + CGFloat(r.v(3)) * max(1, size.width - 2 * pad)
-            let baseY = pad + CGFloat(r.v(4)) * max(1, size.height - 2 * pad)
+            // Place each souvenir in its own jittered grid cell → spaced out, no
+            // pile-ups; the gentle drift stays within the cell.
+            let cols = count <= 8 ? 2 : 3
+            let rows = max(1, Int(ceil(Double(count) / Double(cols))))
+            let cellW = size.width / CGFloat(cols)
+            let cellH = size.height / CGFloat(rows)
+            let baseX = (CGFloat(index % cols) + 0.5) * cellW + (CGFloat(r.v(3)) - 0.5) * cellW * 0.30
+            let baseY = (CGFloat(index / cols) + 0.5) * cellH + (CGFloat(r.v(4)) - 0.5) * cellH * 0.30
+            let amp = min(cellW, cellH) * 0.22
             let angle = r.v(5) * 2 * .pi
-            let dist = CGFloat(28 + r.v(6) * 34) * CGFloat(local)
-            let diameter = CGFloat(12 + r.v(7) * 12)
+            let drift = amp * CGFloat(local / 0.52) // 0 → amp across the visible window
+            let diameter = CGFloat(12 + r.v(7) * 10)
             let color = season.palette[r.idx(8, season.palette.count)]
             Button { openedMemory = mem } label: {
                 VStack(spacing: 7) {
@@ -103,7 +109,7 @@ struct ArbreView: View {
             }
             .buttonStyle(.plain)
             .opacity(op)
-            .position(x: baseX + cos(angle) * dist, y: baseY + sin(angle) * dist)
+            .position(x: baseX + cos(angle) * drift, y: baseY + sin(angle) * drift)
         }
     }
 
