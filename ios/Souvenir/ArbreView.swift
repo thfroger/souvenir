@@ -118,10 +118,10 @@ struct ArbreView: View {
         let fall = season.motion.fall ?? .init(speed: 60, sway: 20)
         // Step the simulation for this frame (TimelineView already redraws at 60fps;
         // the field is a plain reference, so this doesn't re-enter SwiftUI state).
-        let _ = field.frame(mems.map { mem in
+        let _ = field.frame(mems.enumerated().map { idx, mem in
             let r = Seed(mem.id)
             let glyph = snow ? 27 + r.v(7) * 12 : 20 + r.v(7) * 10
-            return FallingField.Spec(id: mem.id, glyph: CGFloat(glyph))
+            return FallingField.Spec(id: mem.id, glyph: CGFloat(glyph), index: idx, count: mems.count)
         }, fall: fall, at: t, size: size)
 
         ForEach(field.bodies, id: \.id) { body in
@@ -318,44 +318,55 @@ private func smoothstep(_ a: Double, _ b: Double, _ x: Double) -> Double {
     return t * t * (3 - 2 * t)
 }
 
-// Deterministic per-memory pseudo-random values (stable within a session).
+// Deterministic 64-bit mix (splitmix64). Unlike Swift's `Hasher` — which is
+// re-seeded randomly every process launch — this is stable across launches, so
+// the scene's per-element variation never accidentally collapses (all elements
+// landing on near-equal values) depending on the run's hash seed.
+private func mix64(_ x: UInt64) -> UInt64 {
+    var z = x &+ 0x9E37_79B9_7F4A_7C15
+    z = (z ^ (z >> 30)) &* 0xBF58_476D_1CE4_E5B9
+    z = (z ^ (z >> 27)) &* 0x94D0_49BB_1331_11EB
+    return z ^ (z >> 31)
+}
+
+private func uuidSeed(_ id: UUID) -> UInt64 {
+    let b = id.uuid
+    let hi = UInt64(b.0) << 56 | UInt64(b.1) << 48 | UInt64(b.2) << 40 | UInt64(b.3) << 32
+           | UInt64(b.4) << 24 | UInt64(b.5) << 16 | UInt64(b.6) << 8 | UInt64(b.7)
+    let lo = UInt64(b.8) << 56 | UInt64(b.9) << 48 | UInt64(b.10) << 40 | UInt64(b.11) << 32
+           | UInt64(b.12) << 24 | UInt64(b.13) << 16 | UInt64(b.14) << 8 | UInt64(b.15)
+    return mix64(hi ^ mix64(lo))
+}
+
+private func salted(_ base: UInt64, _ salt: Int) -> UInt64 {
+    mix64(base ^ (UInt64(bitPattern: Int64(salt)) &* 0x9E37_79B9_7F4A_7C15))
+}
+
+// Deterministic, well-distributed per-memory pseudo-random values.
 private struct Seed {
-    let id: UUID
-    init(_ id: UUID) { self.id = id }
-    func v(_ salt: Int) -> Double {
-        var h = Hasher(); h.combine(id); h.combine(salt)
-        return Double(UInt64(bitPattern: Int64(h.finalize())) % 100_000) / 100_000.0
-    }
-    func idx(_ salt: Int, _ mod: Int) -> Int { Int(v(salt) * Double(mod)) % max(1, mod) }
+    let base: UInt64
+    init(_ id: UUID) { base = uuidSeed(id) }
+    func v(_ salt: Int) -> Double { Double(salted(base, salt) % 1_000_000) / 1_000_000.0 }
+    func idx(_ salt: Int, _ mod: Int) -> Int { Int(salted(base, salt) % UInt64(max(1, mod))) }
     // A direction (+1/-1) that varies per crossing index.
-    func dir(_ crossing: Int) -> CGFloat {
-        var h = Hasher(); h.combine(id); h.combine(crossing); h.combine(777)
-        return (h.finalize() & 1) == 0 ? 1 : -1
-    }
+    func dir(_ crossing: Int) -> CGFloat { (salted(base, 777 &+ crossing) & 1) == 0 ? 1 : -1 }
 }
 
 // Same idea as Seed but keyed by a particle index — ambient decor isn't a memory.
 private struct AmbientSeed {
-    let i: Int
-    init(_ i: Int) { self.i = i }
-    func v(_ salt: Int) -> Double {
-        var h = Hasher(); h.combine(i); h.combine(salt); h.combine(31)
-        return Double(UInt64(bitPattern: Int64(h.finalize())) % 100_000) / 100_000.0
-    }
-    func idx(_ salt: Int, _ mod: Int) -> Int { Int(v(salt) * Double(mod)) % max(1, mod) }
+    let base: UInt64
+    init(_ i: Int) { base = mix64(UInt64(bitPattern: Int64(i)) &+ 0x1234_5678) }
+    func v(_ salt: Int) -> Double { Double(salted(base, salt) % 1_000_000) / 1_000_000.0 }
+    func idx(_ salt: Int, _ mod: Int) -> Int { Int(salted(base, salt) % UInt64(max(1, mod))) }
 }
 
-// A tiny seeded RNG (LCG) so a souvenir spawns in a stable-ish spot without a
-// global random source. Stream advances on each `next()`.
+// A tiny deterministic RNG seeded from a souvenir id, advancing on each `next()`.
 private struct SeededRNG {
     private var state: UInt64
-    init(_ id: UUID, _ salt: Int = 0) {
-        var h = Hasher(); h.combine(id); h.combine(salt)
-        state = UInt64(bitPattern: Int64(h.finalize())) | 1
-    }
+    init(_ id: UUID, _ salt: Int = 0) { state = salted(uuidSeed(id), salt) }
     mutating func next() -> CGFloat {
-        state = state &* 6364136223846793005 &+ 1442695040888963407
-        return CGFloat(state >> 11) / CGFloat(UInt64(1) << 53)
+        state = mix64(state)
+        return CGFloat(state % 1_000_000) / 1_000_000.0
     }
 }
 
@@ -365,7 +376,7 @@ private struct SeededRNG {
 /// — so two flakes never sit on top of each other. Held as plain state and
 /// stepped from the scene's TimelineView (no SwiftUI re-entrancy).
 final class FallingField {
-    struct Spec { let id: UUID; let glyph: CGFloat }
+    struct Spec { let id: UUID; let glyph: CGFloat; let index: Int; let count: Int }
     struct Body: Identifiable {
         let id: UUID
         var pos: CGPoint
@@ -373,49 +384,66 @@ final class FallingField {
         var radius: CGFloat
         var glyph: CGFloat
         var spin: Double
+        var vTarget: CGFloat  // this leaf's own terminal fall speed (varied → desync)
+        var swayFreq: Double  // flutter frequency
+        var swayPhase: Double // flutter phase
+        var swayAccel: CGFloat // flutter strength
+        var index: Int        // lane assignment, kept for respawn
+        var count: Int
     }
 
     private(set) var bodies: [Body] = []
     private var lastT: Double = 0
     private var size: CGSize = .zero
     private var speed: CGFloat = 50
+    private var swayBase: CGFloat = 12
 
     /// Per-frame entry point: reconcile the body set with the current souvenirs,
     /// adopt the season's fall tuning, then advance one step.
     func frame(_ specs: [Spec], fall: Season.Fall, at t: Double, size: CGSize) {
         self.size = size
         speed = fall.speed
-        sync(specs, sway: fall.sway)
+        swayBase = fall.sway
+        sync(specs)
         step(to: t)
     }
 
-    private func sync(_ specs: [Spec], sway: CGFloat) {
+    private func sync(_ specs: [Spec]) {
         let wanted = Dictionary(specs.map { ($0.id, $0.glyph) }, uniquingKeysWith: { a, _ in a })
         bodies.removeAll { wanted[$0.id] == nil }
         let present = Set(bodies.map { $0.id })
         for spec in specs where !present.contains(spec.id) {
-            bodies.append(spawn(spec, sway: sway, fresh: false))
+            bodies.append(spawn(spec, fresh: false))
         }
         // Keep radii in sync if the glyph size changed (e.g. switching autumn↔winter).
         for i in bodies.indices {
             if let glyph = wanted[bodies[i].id] {
                 bodies[i].glyph = glyph
-                bodies[i].radius = glyph * 0.42 // a touch tighter than the visible glyph
+                bodies[i].radius = glyph * 0.5 // wide enough that the leaves don't visually overlap
             }
         }
     }
 
-    private func spawn(_ spec: Spec, sway: CGFloat, fresh: Bool) -> Body {
+    private func spawn(_ spec: Spec, fresh: Bool) -> Body {
         var rng = SeededRNG(spec.id, fresh ? Int(lastT * 1000) : 0)
-        let radius = spec.glyph * 0.42
-        let x = radius + rng.next() * max(1, size.width - 2 * radius)
-        // Stagger initial heights above the screen so they don't arrive in a wall.
-        let y = fresh ? -radius : -rng.next() * max(1, size.height) - radius
-        let vx = (rng.next() - 0.5) * 2 * sway
-        let vy = speed * (0.7 + rng.next() * 0.6)
+        let radius = spec.glyph * 0.5
+        // Horizontal lane by index (+ jitter) so even a handful of leaves spread
+        // across the width instead of clustering on a random per-id position.
+        let lane = (CGFloat(spec.index) + 0.5) / CGFloat(max(1, spec.count))
+        let jitter = (rng.next() - 0.5) * (size.width / CGFloat(max(1, spec.count))) * 0.7
+        let x = min(max(radius, lane * size.width + jitter), size.width - radius)
+        // Respawn enters just above the top; the initial fill spreads down the whole
+        // height so the scene is populated from the first frame (not slowly drifting in).
+        let y = fresh ? -radius : rng.next() * max(1, size.height)
+        let vTarget = speed * (0.6 + rng.next() * 0.9)        // 0.6–1.5× → each falls at its own pace
+        let swayFreq = 0.6 + Double(rng.next()) * 1.7         // rad/s, per leaf → no shared rhythm
+        let swayPhase = Double(rng.next()) * 6.2832
+        let swayAccel = swayBase * (0.7 + rng.next() * 0.9)
         return Body(id: spec.id, pos: CGPoint(x: x, y: y),
-                    vel: CGVector(dx: vx, dy: vy), radius: radius, glyph: spec.glyph,
-                    spin: Double(rng.next()) * 360)
+                    vel: CGVector(dx: (rng.next() - 0.5) * swayBase, dy: vTarget),
+                    radius: radius, glyph: spec.glyph, spin: Double(rng.next()) * 360,
+                    vTarget: vTarget, swayFreq: swayFreq, swayPhase: swayPhase, swayAccel: swayAccel,
+                    index: spec.index, count: spec.count)
     }
 
     private func step(to t: Double) {
@@ -423,21 +451,25 @@ final class FallingField {
         guard lastT != 0 else { return }
         let dt = min(t - lastT, 1.0 / 30) // clamp hitches so collisions stay stable
         guard dt > 0 else { return }
-        let g: CGFloat = 22 // gentle pull back to falling after a bounce
         for i in bodies.indices {
-            bodies[i].vel.dy += g * CGFloat(dt)
-            bodies[i].vel.dx *= 0.995
+            // Side-to-side flutter — per-leaf frequency/phase so no two move alike.
+            let osc = CGFloat(sin(t * bodies[i].swayFreq + bodies[i].swayPhase))
+            bodies[i].vel.dx += osc * bodies[i].swayAccel * CGFloat(dt)
+            bodies[i].vel.dx *= 0.95 // damp so flutter stays bounded
+            // Ease toward this leaf's own terminal speed instead of a shared gravity
+            // (which would make every leaf fall at the same rate and bunch up).
+            bodies[i].vel.dy += (bodies[i].vTarget - bodies[i].vel.dy) * 2.0 * CGFloat(dt)
             bodies[i].pos.x += bodies[i].vel.dx * CGFloat(dt)
             bodies[i].pos.y += bodies[i].vel.dy * CGFloat(dt)
-            bodies[i].spin += Double(bodies[i].vel.dx) * dt * 1.5
+            bodies[i].spin += Double(bodies[i].vel.dx) * dt * 1.2
             let r = bodies[i].radius
             if bodies[i].pos.x < r { bodies[i].pos.x = r; bodies[i].vel.dx = abs(bodies[i].vel.dx) }
             if bodies[i].pos.x > size.width - r {
                 bodies[i].pos.x = size.width - r; bodies[i].vel.dx = -abs(bodies[i].vel.dx)
             }
             if bodies[i].pos.y - r > size.height {
-                bodies[i] = spawn(Spec(id: bodies[i].id, glyph: bodies[i].glyph),
-                                  sway: max(8, abs(bodies[i].vel.dx)), fresh: true)
+                bodies[i] = spawn(Spec(id: bodies[i].id, glyph: bodies[i].glyph,
+                                       index: bodies[i].index, count: bodies[i].count), fresh: true)
             }
         }
         resolveCollisions()
