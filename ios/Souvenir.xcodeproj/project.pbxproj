@@ -12,6 +12,8 @@
 		1A0000000000000000000015 /* Palette.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000014 /* Palette.swift */; };
 		1A0000000000000000000022 /* CryptoCore in Frameworks */ = {isa = PBXBuildFile; productRef = 1A0000000000000000000021 /* CryptoCore */; };
 		1A0000000000000000000032 /* SocialRecoveryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000030 /* SocialRecoveryView.swift */; };
+		BC00000000000000000000C2 /* BackendConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC00000000000000000000C1 /* BackendConfig.swift */; };
+		5E00000000000000000000C2 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E00000000000000000000C1 /* SettingsView.swift */; };
 		1A0000000000000000000033 /* RecoverySetupModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000031 /* RecoverySetupModel.swift */; };
 		1A0000000000000000000042 /* FriseModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000040 /* FriseModels.swift */; };
 		1A0000000000000000000043 /* FriseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000041 /* FriseView.swift */; };
@@ -41,6 +43,8 @@
 		1A0000000000000000000011 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		1A0000000000000000000014 /* Palette.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Palette.swift; sourceTree = "<group>"; };
 		1A0000000000000000000030 /* SocialRecoveryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SocialRecoveryView.swift; sourceTree = "<group>"; };
+		BC00000000000000000000C1 /* BackendConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackendConfig.swift; sourceTree = "<group>"; };
+		5E00000000000000000000C1 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		1A0000000000000000000031 /* RecoverySetupModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoverySetupModel.swift; sourceTree = "<group>"; };
 		1A0000000000000000000040 /* FriseModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriseModels.swift; sourceTree = "<group>"; };
 		1A0000000000000000000041 /* FriseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriseView.swift; sourceTree = "<group>"; };
@@ -103,6 +107,8 @@
 				1A0000000000000000000014 /* Palette.swift */,
 				1A0000000000000000000030 /* SocialRecoveryView.swift */,
 				1A0000000000000000000031 /* RecoverySetupModel.swift */,
+				BC00000000000000000000C1 /* BackendConfig.swift */,
+				5E00000000000000000000C1 /* SettingsView.swift */,
 				1A0000000000000000000040 /* FriseModels.swift */,
 				1A0000000000000000000041 /* FriseView.swift */,
 				1A0000000000000000000050 /* ImmersiveMemoryView.swift */,
@@ -219,6 +225,8 @@
 				1A0000000000000000000013 /* ContentView.swift in Sources */,
 				1A0000000000000000000032 /* SocialRecoveryView.swift in Sources */,
 				1A0000000000000000000033 /* RecoverySetupModel.swift in Sources */,
+				BC00000000000000000000C2 /* BackendConfig.swift in Sources */,
+				5E00000000000000000000C2 /* SettingsView.swift in Sources */,
 				1A0000000000000000000042 /* FriseModels.swift in Sources */,
 				1A0000000000000000000043 /* FriseView.swift in Sources */,
 				1A0000000000000000000052 /* ImmersiveMemoryView.swift in Sources */,

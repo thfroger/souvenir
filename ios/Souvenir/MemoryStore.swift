@@ -74,7 +74,6 @@ final class MemoryStore: ObservableObject {
 
     private let vaultKey: SymmetricKey
     private let fileURL: URL
-    private let backendURL = URL(string: "http://localhost:8787")!
     private let vault = "vault-A"
     private var client: BackendClient? // set after passkey-equivalent auth
     @Published private var entries: [StoredEntry] = []
@@ -100,11 +99,26 @@ final class MemoryStore: ObservableObject {
     /// Passkey-equivalent login: register the device public key (idempotent), then
     /// challenge → sign → verify → session token. Best-effort.
     private func authenticate() async {
+        // Resolved fresh each time so a changed server URL (dev) takes effect on
+        // the next reconnect without a relaunch.
+        let backendURL = BackendConfig.baseURL
         let auth = AuthClient(baseURL: backendURL)
         let device = DeviceIdentity.loadOrCreate()
         await auth.register(credentialID: device.credentialID, publicKeyX963: device.publicKeyX963, vault: vault)
         if let token = await auth.login(credentialID: device.credentialID, sign: device.sign) {
             client = BackendClient(baseURL: backendURL, token: token, vault: vault)
+        }
+    }
+
+    /// Re-read the configured server URL, re-authenticate, then resync. Lets the
+    /// dev server-URL setting take effect without relaunching the app. Best-effort
+    /// and offline-safe like the launch path.
+    func reconnect() {
+        client = nil
+        Task { @MainActor in
+            await authenticate()
+            syncAll()
+            pull(seedIfEmpty: false)
         }
     }
 

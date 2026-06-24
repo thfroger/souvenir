@@ -47,9 +47,10 @@ struct FriseView: View {
             }
         }
         .sheet(isPresented: $showSettings) {
-            // The header sliders button is the Réglages hub entry (DESIGN_INTEGRATION §9);
-            // for now it routes straight to social recovery, one of its destinations.
-            SocialRecoveryView(childName: child.name) { showSettings = false }
+            // The header sliders button is the Réglages hub (DESIGN_INTEGRATION §9):
+            // social recovery + (DEBUG) the dev server URL.
+            SettingsView(childName: child.name) { showSettings = false }
+                .environmentObject(store)
         }
         .fullScreenCover(item: $openedMemory) { memory in
             ImmersiveMemoryView(memory: memory, child: child) { openedMemory = nil }
