@@ -78,7 +78,8 @@ struct ImmersiveMemoryView: View {
         }
     }
 
-    // Compact caption that floats over the bottom of the photo (no tall sheet).
+    // Compact caption whose background melts into the paper/photo via a soft
+    // top-to-bottom fade (no distinct card edge).
     private var photoCaption: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(metaLine)
@@ -96,11 +97,15 @@ struct ImmersiveMemoryView: View {
             }
         }
         .padding(.horizontal, 22)
-        .padding(.top, 18)
-        .padding(.bottom, 34)
+        .padding(.top, 76)   // tall fade above the text
+        .padding(.bottom, 40)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.regularMaterial)
-        .clipShape(.rect(topLeadingRadius: 28, topTrailingRadius: 28))
+        .background(
+            LinearGradient(
+                colors: [Palette.paper.opacity(0), Palette.paper.opacity(0.85), Palette.paper],
+                startPoint: .top, endPoint: .bottom
+            )
+        )
     }
 
     private var zoomGesture: some Gesture {
