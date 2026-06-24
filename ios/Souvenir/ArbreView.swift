@@ -12,7 +12,7 @@ struct ArbreView: View {
     @State private var openedMemory: Memory?
     @State private var start = Date()
     @State private var selectedYear: Int? // nil = Toutes
-    @State private var field = FallingField() // physics for falling seasons
+    @State private var sky = SkyField() // rotating cast of ~5 souvenirs
     #if DEBUG
     // Dev-only: lets Réglages force a season to tune the scene. Compiled out of
     // release builds, so the app always follows the real date when shipped.
@@ -83,15 +83,7 @@ struct ArbreView: View {
                 let t = timeline.date.timeIntervalSince(start)
                 ZStack {
                     ambientLayer(t: t, size: geo.size)
-                    if season.motion.fall != nil {
-                        // Autumn leaves / winter snow: a real physics field so falling
-                        // souvenirs bounce off each other and never overlap.
-                        fallingScene(mems, t: t, size: geo.size)
-                    } else {
-                        ForEach(Array(mems.enumerated()), id: \.element.id) { i, mem in
-                            element(mem, index: i, count: mems.count, t: t, size: geo.size)
-                        }
-                    }
+                    skyScene(mems, t: t, size: geo.size)
                 }
             }
         }
@@ -99,49 +91,39 @@ struct ArbreView: View {
         .clipped()
     }
 
-    @ViewBuilder
-    private func element(_ mem: Memory, index: Int, count: Int, t: Double, size: CGSize) -> some View {
-        let r = Seed(mem.id)
-        let color = season.palette[r.idx(9, season.palette.count)]
-        switch season {
-        case .summer: fish(mem, r, index, count, t, size, color)
-        case .spring: flower(mem, r, index, count, t, size, color)
-        case .autumn, .winter: EmptyView() // handled by fallingScene (physics)
-        }
-    }
-
-    // AUTOMNE / HIVER — souvenirs fall under a small physics field: gentle gravity,
-    // wall bounces, and elastic collisions so two never sit on top of each other.
-    @ViewBuilder
-    private func fallingScene(_ mems: [Memory], t: Double, size: CGSize) -> some View {
-        let snow = season == .winter
-        let fall = season.motion.fall ?? .init(speed: 60, sway: 20)
-        // Step the simulation for this frame (TimelineView already redraws at 60fps;
-        // the field is a plain reference, so this doesn't re-enter SwiftUI state).
-        let _ = field.frame(mems.enumerated().map { idx, mem in
-            let r = Seed(mem.id)
-            let glyph = snow ? 27 + r.v(7) * 12 : 20 + r.v(7) * 10
-            return FallingField.Spec(id: mem.id, glyph: CGFloat(glyph), index: idx, count: mems.count)
-        }, fall: fall, at: t, size: size)
-
-        ForEach(field.bodies, id: \.id) { body in
-            if let mem = mems.first(where: { $0.id == body.id }) {
-                let color = season.palette[Seed(mem.id).idx(9, season.palette.count)]
-                node(mem, x: body.pos.x, y: body.pos.y, opacity: 1) {
-                    Image(systemName: snow ? "snowflake" : "leaf.fill")
-                        .font(.system(size: body.glyph))
-                        .foregroundStyle(color)
-                        .rotationEffect(.degrees(body.spin))
-                        .shadow(color: color.opacity(0.3), radius: 4)
-                }
+    // The living stage: a small rotating cast (~5) of souvenirs drawn at random
+    // from the collection, each with random position/heading/colour/size, drifting
+    // with the season's flavour and never overlapping. Stepped from the TimelineView
+    // (the field is a plain reference → no SwiftUI re-entrancy).
+    private func skyScene(_ mems: [Memory], t: Double, size: CGSize) -> some View {
+        let sk = season.sky
+        let _ = sky.frame(pool: mems, style: sk, palette: season.palette, at: t, size: size)
+        return ForEach(sky.bodies) { body in
+            node(body.memory, x: body.pos.x, y: body.pos.y, opacity: sky.opacity(of: body, style: sk.style)) {
+                skyGlyph(body, style: sk)
             }
         }
     }
 
-    // One souvenir's cross/fall/bloom period, drawn from the season's tunable range.
-    private func periodFor(_ r: Seed, salt: Int) -> Double {
-        let range = season.motion.creaturePeriod
-        return range.lowerBound + r.v(salt) * (range.upperBound - range.lowerBound)
+    @ViewBuilder
+    private func skyGlyph(_ body: SkyField.Body, style: Season.Sky) -> some View {
+        switch style.style {
+        case .bloom:
+            FlowerGlyph(petal: body.color)
+                .scaleEffect(min(1, smoothstep(0, 1.5, body.age)), anchor: .bottom)
+        case .swim:
+            Image(systemName: style.symbol)
+                .font(.system(size: body.glyph))
+                .foregroundStyle(body.color)
+                .scaleEffect(x: body.facing, y: 1) // face the way it swims
+                .shadow(color: body.color.opacity(0.4), radius: 6)
+        case .fall:
+            Image(systemName: style.symbol)
+                .font(.system(size: body.glyph))
+                .foregroundStyle(body.color)
+                .rotationEffect(.degrees(body.spin))
+                .shadow(color: body.color.opacity(0.3), radius: 4)
+        }
     }
 
     // Decorative seasonal particles behind the souvenirs — they give each season
@@ -184,50 +166,6 @@ struct ArbreView: View {
                 .foregroundStyle(color.opacity(a.opacity))
                 .rotationEffect(.degrees(rot))
                 .position(x: x, y: y)
-        }
-    }
-
-    // ÉTÉ — fish swimming across the screen in vertical lanes, gently bobbing.
-    @ViewBuilder
-    private func fish(_ mem: Memory, _ r: Seed, _ i: Int, _ n: Int, _ t: Double, _ s: CGSize, _ c: Color) -> some View {
-        let lane = (Double(i) + 0.5) / Double(max(1, n))
-        let baseY = 40 + CGFloat(lane) * max(1, s.height - 80)
-        let period = periodFor(r, salt: 3)
-        let raw = (t / period) + r.v(4)
-        let prog = raw - floor(raw)
-        // Direction is re-rolled each crossing → fish randomly head left or right
-        // over time (not a fixed per-fish side). They flip while off-screen.
-        let dir: CGFloat = r.dir(Int(floor(raw)))
-        let span = s.width + 200
-        let x = dir > 0 ? -100 + CGFloat(prog) * span : s.width + 100 - CGFloat(prog) * span
-        let y = baseY + CGFloat(sin(t * (0.55 + r.v(5) * 0.5) + r.v(6) * 6) * 20) // ample, unhurried bob
-        node(mem, x: x, y: y, opacity: edgeFade(prog)) {
-            Image(systemName: "fish.fill")
-                .font(.system(size: 33 + r.v(7) * 15)) // ~1.5× bigger
-                .foregroundStyle(c)
-                .scaleEffect(x: dir, y: 1)
-                .shadow(color: c.opacity(0.4), radius: 6)
-        }
-    }
-
-    // PRINTEMPS — flowers grow up from their spot, bloom, then fade as others
-    // sprout. Rooted on a jittered grid so they don't pile up.
-    @ViewBuilder
-    private func flower(_ mem: Memory, _ r: Seed, _ i: Int, _ n: Int, _ t: Double, _ s: CGSize, _ c: Color) -> some View {
-        let cols = n <= 8 ? 2 : 3
-        let rows = max(1, Int(ceil(Double(n) / Double(cols))))
-        let cellW = s.width / CGFloat(cols)
-        let cellH = s.height / CGFloat(rows)
-        let x = (CGFloat(i % cols) + 0.5) * cellW + (CGFloat(r.v(3)) - 0.5) * cellW * 0.4
-        let y = (CGFloat(i / cols) + 0.5) * cellH + (CGFloat(r.v(4)) - 0.5) * cellH * 0.4
-        let period = periodFor(r, salt: 2)
-        let local = ((t / period) + Double(i) / Double(max(1, n))).truncatingRemainder(dividingBy: 1)
-        let grow = smoothstep(0, 0.28, local)               // sprout
-        let scale = grow * (1 - smoothstep(0.82, 1, local))  // bloom then fade away
-        let op = min(grow, 1 - smoothstep(0.86, 1, local))
-        node(mem, x: x, y: y, opacity: op) {
-            FlowerGlyph(petal: c)
-                .scaleEffect(scale, anchor: .bottom)
         }
     }
 
@@ -311,20 +249,13 @@ private struct FlowerGlyph: View {
     }
 }
 
-// Fade in/out near the start/end of a 0…1 progress so elements don't pop at edges.
-private func edgeFade(_ p: Double) -> Double {
-    smoothstep(0, 0.07, p) * (1 - smoothstep(0.93, 1, p))
-}
-
 private func smoothstep(_ a: Double, _ b: Double, _ x: Double) -> Double {
     let t = min(1, max(0, (x - a) / (b - a)))
     return t * t * (3 - 2 * t)
 }
 
-// Deterministic 64-bit mix (splitmix64). Unlike Swift's `Hasher` — which is
-// re-seeded randomly every process launch — this is stable across launches, so
-// the scene's per-element variation never accidentally collapses (all elements
-// landing on near-equal values) depending on the run's hash seed.
+// Deterministic 64-bit mix (splitmix64), stable across launches — used for the
+// ambient decor so it never accidentally clusters depending on the run's seed.
 private func mix64(_ x: UInt64) -> UInt64 {
     var z = x &+ 0x9E37_79B9_7F4A_7C15
     z = (z ^ (z >> 30)) &* 0xBF58_476D_1CE4_E5B9
@@ -332,30 +263,12 @@ private func mix64(_ x: UInt64) -> UInt64 {
     return z ^ (z >> 31)
 }
 
-private func uuidSeed(_ id: UUID) -> UInt64 {
-    let b = id.uuid
-    let hi = UInt64(b.0) << 56 | UInt64(b.1) << 48 | UInt64(b.2) << 40 | UInt64(b.3) << 32
-           | UInt64(b.4) << 24 | UInt64(b.5) << 16 | UInt64(b.6) << 8 | UInt64(b.7)
-    let lo = UInt64(b.8) << 56 | UInt64(b.9) << 48 | UInt64(b.10) << 40 | UInt64(b.11) << 32
-           | UInt64(b.12) << 24 | UInt64(b.13) << 16 | UInt64(b.14) << 8 | UInt64(b.15)
-    return mix64(hi ^ mix64(lo))
-}
-
 private func salted(_ base: UInt64, _ salt: Int) -> UInt64 {
     mix64(base ^ (UInt64(bitPattern: Int64(salt)) &* 0x9E37_79B9_7F4A_7C15))
 }
 
-// Deterministic, well-distributed per-memory pseudo-random values.
-private struct Seed {
-    let base: UInt64
-    init(_ id: UUID) { base = uuidSeed(id) }
-    func v(_ salt: Int) -> Double { Double(salted(base, salt) % 1_000_000) / 1_000_000.0 }
-    func idx(_ salt: Int, _ mod: Int) -> Int { Int(salted(base, salt) % UInt64(max(1, mod))) }
-    // A direction (+1/-1) that varies per crossing index.
-    func dir(_ crossing: Int) -> CGFloat { (salted(base, 777 &+ crossing) & 1) == 0 ? 1 : -1 }
-}
-
-// Same idea as Seed but keyed by a particle index — ambient decor isn't a memory.
+// Deterministic, well-distributed pseudo-random values keyed by a particle index
+// — the ambient decor isn't a souvenir, so it stays stable rather than random.
 private struct AmbientSeed {
     let base: UInt64
     init(_ i: Int) { base = mix64(UInt64(bitPattern: Int64(i)) &+ 0x1234_5678) }
@@ -363,128 +276,176 @@ private struct AmbientSeed {
     func idx(_ salt: Int, _ mod: Int) -> Int { Int(salted(base, salt) % UInt64(max(1, mod))) }
 }
 
-// A tiny deterministic RNG seeded from a souvenir id, advancing on each `next()`.
-private struct SeededRNG {
-    private var state: UInt64
-    init(_ id: UUID, _ salt: Int = 0) { state = salted(uuidSeed(id), salt) }
-    mutating func next() -> CGFloat {
-        state = mix64(state)
-        return CGFloat(state % 1_000_000) / 1_000_000.0
-    }
-}
-
-/// A small physics field for the seasons whose souvenirs fall (autumn leaves,
-/// winter snow). Each souvenir is a soft disc that drifts down under gentle
-/// gravity, bounces off the side walls, and collides elastically with the others
-/// — so two flakes never sit on top of each other. Held as plain state and
-/// stepped from the scene's TimelineView (no SwiftUI re-entrancy).
-final class FallingField {
-    struct Spec { let id: UUID; let glyph: CGFloat; let index: Int; let count: Int }
+/// The Ciel's living stage: a small rotating cast (≈5) of souvenirs drawn at
+/// random from the whole collection. Each drifts with the season's flavour
+/// (fish swim & turn, leaves/snow fall, flowers bloom in place), never overlaps
+/// another, then fades out and is replaced by a *different* random souvenir —
+/// random position, heading, colour and size each time. Plain state, stepped
+/// from the scene's TimelineView (no SwiftUI re-entrancy). Uses true randomness:
+/// the cast is ephemeral, so nothing needs to be stable across launches.
+final class SkyField {
     struct Body: Identifiable {
-        let id: UUID
+        let id: Int          // stable on-screen slot → SwiftUI views stay put as the cast rotates
+        var memory: Memory
         var pos: CGPoint
         var vel: CGVector
         var radius: CGFloat
         var glyph: CGFloat
+        var color: Color
         var spin: Double
-        var vTarget: CGFloat  // this leaf's own terminal fall speed (varied → desync)
-        var swayFreq: Double  // flutter frequency
-        var swayPhase: Double // flutter phase
-        var swayAccel: CGFloat // flutter strength
-        var index: Int        // lane assignment, kept for respawn
-        var count: Int
+        var age: Double
+        var lifetime: Double
+        var wanderPhase: Double
+        var wanderRate: Double
+        var facing: CGFloat
     }
 
     private(set) var bodies: [Body] = []
     private var lastT: Double = 0
     private var size: CGSize = .zero
-    private var speed: CGFloat = 50
-    private var swayBase: CGFloat = 12
-    // Keep the glyph *and its centred title* (≤96pt wide) on screen near the edges.
+    private var rng = SystemRandomNumberGenerator()
+    private static let maxOnScreen = 5
+    // Keep the glyph *and its centred title* (≤96pt) from leaving the screen.
     private static let labelMargin: CGFloat = 50
 
-    /// Per-frame entry point: reconcile the body set with the current souvenirs,
-    /// adopt the season's fall tuning, then advance one step.
-    func frame(_ specs: [Spec], fall: Season.Fall, at t: Double, size: CGSize) {
+    func frame(pool: [Memory], style: Season.Sky, palette: [Color], at t: Double, size: CGSize) {
         self.size = size
-        speed = fall.speed
-        swayBase = fall.sway
-        sync(specs)
-        step(to: t)
-    }
+        let target = min(Self.maxOnScreen, pool.count)
+        if lastT == 0 { lastT = t }
+        var dt = t - lastT; lastT = t
+        dt = min(max(dt, 0), 1.0 / 30)
 
-    private func sync(_ specs: [Spec]) {
-        let wanted = Dictionary(specs.map { ($0.id, $0.glyph) }, uniquingKeysWith: { a, _ in a })
-        bodies.removeAll { wanted[$0.id] == nil }
-        let present = Set(bodies.map { $0.id })
-        for spec in specs where !present.contains(spec.id) {
-            bodies.append(spawn(spec, fresh: false))
+        // Drop bodies whose souvenir left the pool (year filter / child change), and
+        // resize the cast to the target count.
+        bodies.removeAll { b in !pool.contains { $0.id == b.memory.id } }
+        if bodies.count > target { bodies.removeLast(bodies.count - target) }
+        while bodies.count < target {
+            // Initial fill spreads across the visible height (entering: false) so the
+            // scene is populated at once rather than slowly drifting in from the top.
+            bodies.append(spawn(slot: bodies.count, pool: pool, style: style, palette: palette, entering: false))
         }
-        // Keep radii in sync if the glyph size changed (e.g. switching autumn↔winter).
-        for i in bodies.indices {
-            if let glyph = wanted[bodies[i].id] {
-                bodies[i].glyph = glyph
-                bodies[i].radius = glyph * 0.5 // wide enough that the leaves don't visually overlap
-            }
-        }
-    }
-
-    private func spawn(_ spec: Spec, fresh: Bool) -> Body {
-        var rng = SeededRNG(spec.id, fresh ? Int(lastT * 1000) : 0)
-        let radius = spec.glyph * 0.5
-        let m = max(radius, Self.labelMargin)
-        // Horizontal lane by index (+ jitter), confined to the label-safe band so even
-        // a handful of leaves spread across the width instead of clustering.
-        let safeW = max(1, size.width - 2 * m)
-        let lane = (CGFloat(spec.index) + 0.5) / CGFloat(max(1, spec.count))
-        let jitter = (rng.next() - 0.5) * (safeW / CGFloat(max(1, spec.count))) * 0.7
-        let x = min(max(m, m + lane * safeW + jitter), size.width - m)
-        // Respawn enters just above the top; the initial fill spreads down the whole
-        // height so the scene is populated from the first frame (not slowly drifting in).
-        let y = fresh ? -radius : rng.next() * max(1, size.height)
-        let vTarget = speed * (0.6 + rng.next() * 0.9)        // 0.6–1.5× → each falls at its own pace
-        let swayFreq = 0.6 + Double(rng.next()) * 1.7         // rad/s, per leaf → no shared rhythm
-        let swayPhase = Double(rng.next()) * 6.2832
-        let swayAccel = swayBase * (0.7 + rng.next() * 0.9)
-        return Body(id: spec.id, pos: CGPoint(x: x, y: y),
-                    vel: CGVector(dx: (rng.next() - 0.5) * swayBase, dy: vTarget),
-                    radius: radius, glyph: spec.glyph, spin: Double(rng.next()) * 360,
-                    vTarget: vTarget, swayFreq: swayFreq, swayPhase: swayPhase, swayAccel: swayAccel,
-                    index: spec.index, count: spec.count)
-    }
-
-    private func step(to t: Double) {
-        defer { lastT = t }
-        guard lastT != 0 else { return }
-        let dt = min(t - lastT, 1.0 / 30) // clamp hitches so collisions stay stable
         guard dt > 0 else { return }
+
         for i in bodies.indices {
-            // Side-to-side flutter — per-leaf frequency/phase so no two move alike.
-            let osc = CGFloat(sin(t * bodies[i].swayFreq + bodies[i].swayPhase))
-            bodies[i].vel.dx += osc * bodies[i].swayAccel * CGFloat(dt)
-            bodies[i].vel.dx *= 0.95 // damp so flutter stays bounded
-            // Ease toward this leaf's own terminal speed instead of a shared gravity
-            // (which would make every leaf fall at the same rate and bunch up).
-            bodies[i].vel.dy += (bodies[i].vTarget - bodies[i].vel.dy) * 2.0 * CGFloat(dt)
-            bodies[i].pos.x += bodies[i].vel.dx * CGFloat(dt)
-            bodies[i].pos.y += bodies[i].vel.dy * CGFloat(dt)
-            bodies[i].spin += Double(bodies[i].vel.dx) * dt * 1.2
-            let r = bodies[i].radius
-            let m = max(r, Self.labelMargin) // bounce before the title would leave the screen
-            if bodies[i].pos.x < m { bodies[i].pos.x = m; bodies[i].vel.dx = abs(bodies[i].vel.dx) }
-            if bodies[i].pos.x > size.width - m {
-                bodies[i].pos.x = size.width - m; bodies[i].vel.dx = -abs(bodies[i].vel.dx)
-            }
-            if bodies[i].pos.y - r > size.height {
-                bodies[i] = spawn(Spec(id: bodies[i].id, glyph: bodies[i].glyph,
-                                       index: bodies[i].index, count: bodies[i].count), fresh: true)
+            bodies[i].age += dt
+            switch style.style {
+            case .bloom:
+                break // rooted; only blooms (scale) and fades
+            case .swim:
+                let turn = sin(t * bodies[i].wanderRate + bodies[i].wanderPhase) * 0.9
+                rotate(&bodies[i].vel, by: turn * dt)
+                bodies[i].pos.x += bodies[i].vel.dx * CGFloat(dt)
+                bodies[i].pos.y += bodies[i].vel.dy * CGFloat(dt)
+                bounceAllWalls(&bodies[i])
+                bodies[i].facing = bodies[i].vel.dx >= 0 ? 1 : -1
+            case .fall:
+                let osc = CGFloat(sin(t * bodies[i].wanderRate * 2 + bodies[i].wanderPhase))
+                bodies[i].vel.dx += osc * 12 * CGFloat(dt)
+                bodies[i].vel.dx *= 0.96
+                bodies[i].pos.x += bodies[i].vel.dx * CGFloat(dt)
+                bodies[i].pos.y += bodies[i].vel.dy * CGFloat(dt)
+                bodies[i].spin += Double(bodies[i].vel.dx) * dt * 1.2
+                bounceSideWalls(&bodies[i])
             }
         }
         resolveCollisions()
+
+        // Recycle: a faded-out (or fallen-off-the-bottom) souvenir is replaced by a
+        // fresh random one, so the cast keeps rotating.
+        for i in bodies.indices {
+            let fellOff = style.style == .fall && bodies[i].pos.y - bodies[i].radius > size.height
+            if fellOff {
+                bodies[i] = spawn(slot: bodies[i].id, pool: pool, style: style, palette: palette, entering: true)
+            } else if style.style != .fall && bodies[i].age > bodies[i].lifetime {
+                bodies[i] = spawn(slot: bodies[i].id, pool: pool, style: style, palette: palette, entering: false)
+            }
+        }
     }
 
-    // Equal-mass elastic resolution: separate the overlap, then reflect the
-    // relative velocity along the contact normal so they head off in new directions.
+    // Fade in on arrival; swim/bloom also fade out near end of life (falling ones
+    // simply exit the bottom).
+    func opacity(of b: Body, style: Season.SkyStyle) -> Double {
+        let fadeIn = smoothstep(0, 1.2, b.age)
+        guard style != .fall else { return fadeIn }
+        return min(fadeIn, smoothstep(0, 1.6, b.lifetime - b.age))
+    }
+
+    private func spawn(slot: Int, pool: [Memory], style: Season.Sky, palette: [Color], entering: Bool) -> Body {
+        // Prefer a souvenir not already on screen, so the cast shows variety.
+        let shown = Set(bodies.filter { $0.id != slot }.map { $0.memory.id })
+        let choices = pool.filter { !shown.contains($0.id) }
+        let mem = (choices.isEmpty ? pool : choices).randomElement(using: &rng) ?? pool[0]
+        let glyph = CGFloat.random(in: style.glyph, using: &rng)
+        let radius = glyph * 0.5
+        let color = palette.randomElement(using: &rng) ?? .gray
+        let speed = CGFloat.random(in: style.speed, using: &rng)
+        let pos: CGPoint
+        let vel: CGVector
+        switch style.style {
+        case .fall:
+            let m = max(radius, Self.labelMargin)
+            let x = CGFloat.random(in: m...max(m, size.width - m), using: &rng)
+            // Recycled flakes enter just above the top; the initial fill is spread
+            // down the visible height so the scene starts populated.
+            let y = entering
+                ? -radius - CGFloat.random(in: 0...max(1, size.height * 0.3), using: &rng)
+                : CGFloat.random(in: -radius...max(1, size.height * 0.85), using: &rng)
+            pos = CGPoint(x: x, y: y)
+            vel = CGVector(dx: CGFloat.random(in: -10...10, using: &rng), dy: max(8, speed))
+        case .swim:
+            pos = freePosition(radius: radius)
+            let dir: CGFloat = Bool.random(using: &rng) ? 1 : -1
+            let ang = Double.random(in: -0.5...0.5, using: &rng) // mostly horizontal, some rise/dive
+            vel = CGVector(dx: dir * speed * CGFloat(cos(ang)), dy: speed * CGFloat(sin(ang)) * 0.6)
+        case .bloom:
+            pos = freePosition(radius: radius)
+            vel = .zero
+        }
+        return Body(id: slot, memory: mem, pos: pos, vel: vel, radius: radius, glyph: glyph,
+                    color: color, spin: Double.random(in: 0...360, using: &rng), age: 0,
+                    lifetime: Double.random(in: 10...20, using: &rng),
+                    wanderPhase: Double.random(in: 0...6.2832, using: &rng),
+                    wanderRate: Double.random(in: 0.3...0.8, using: &rng),
+                    facing: vel.dx >= 0 ? 1 : -1)
+    }
+
+    // A random on-screen spot that doesn't land on another souvenir.
+    private func freePosition(radius: CGFloat) -> CGPoint {
+        let mx = max(radius, Self.labelMargin)
+        let my = max(radius, 30)
+        let xr = mx...max(mx, size.width - mx)
+        let yr = my...max(my, size.height - my)
+        for _ in 0..<14 {
+            let p = CGPoint(x: .random(in: xr, using: &rng), y: .random(in: yr, using: &rng))
+            if bodies.allSatisfy({ hypot($0.pos.x - p.x, $0.pos.y - p.y) > $0.radius + radius + 12 }) {
+                return p
+            }
+        }
+        return CGPoint(x: .random(in: xr, using: &rng), y: .random(in: yr, using: &rng))
+    }
+
+    private func rotate(_ v: inout CGVector, by a: Double) {
+        let c = CGFloat(cos(a)), s = CGFloat(sin(a))
+        v = CGVector(dx: v.dx * c - v.dy * s, dy: v.dx * s + v.dy * c)
+    }
+
+    private func bounceAllWalls(_ b: inout Body) {
+        let mx = max(b.radius, Self.labelMargin)
+        let my = max(b.radius, 30)
+        if b.pos.x < mx { b.pos.x = mx; b.vel.dx = abs(b.vel.dx) }
+        if b.pos.x > size.width - mx { b.pos.x = size.width - mx; b.vel.dx = -abs(b.vel.dx) }
+        if b.pos.y < my { b.pos.y = my; b.vel.dy = abs(b.vel.dy) }
+        if b.pos.y > size.height - my { b.pos.y = size.height - my; b.vel.dy = -abs(b.vel.dy) }
+    }
+
+    private func bounceSideWalls(_ b: inout Body) {
+        let mx = max(b.radius, Self.labelMargin)
+        if b.pos.x < mx { b.pos.x = mx; b.vel.dx = abs(b.vel.dx) }
+        if b.pos.x > size.width - mx { b.pos.x = size.width - mx; b.vel.dx = -abs(b.vel.dx) }
+    }
+
+    // Separate any overlap and reflect along the contact normal so two souvenirs
+    // never sit on top of each other and head off in new directions.
     private func resolveCollisions() {
         guard bodies.count > 1 else { return }
         for i in 0..<bodies.count {
@@ -501,8 +462,8 @@ final class FallingField {
                 bodies[j].pos.x += nx * overlap; bodies[j].pos.y += ny * overlap
                 let rvn = (bodies[j].vel.dx - bodies[i].vel.dx) * nx
                         + (bodies[j].vel.dy - bodies[i].vel.dy) * ny
-                guard rvn < 0 else { continue } // only if approaching
-                let imp = -(1 + 0.85) * rvn / 2 // restitution 0.85
+                guard rvn < 0 else { continue }
+                let imp = -(1 + 0.7) * rvn / 2
                 bodies[i].vel.dx -= imp * nx; bodies[i].vel.dy -= imp * ny
                 bodies[j].vel.dx += imp * nx; bodies[j].vel.dy += imp * ny
             }
@@ -592,37 +553,34 @@ enum Season {
         let opacity: Double
     }
 
-    // Falling souvenirs (autumn/winter) run through the physics field instead of a
-    // stateless period; nil for seasons that don't fall (swim/bloom).
-    struct Fall {
-        let speed: CGFloat // downward drift, points per second
-        let sway: CGFloat  // horizontal spread of the initial drift
-    }
+    struct Motion { let ambient: Ambient }
 
-    /// All per-season pacing in one place — the dial to tune feel.
-    /// `creaturePeriod` drives swim/bloom seasons; `fall` drives the physics ones.
-    struct Motion {
-        let creaturePeriod: ClosedRange<Double>
-        let ambient: Ambient
-        var fall: Fall? = nil
-    }
-
+    // Calm ambient decor behind the small souvenir cast (counts kept low so the
+    // scene stays uncluttered — the souvenirs are the actors).
     var motion: Motion {
         switch self {
-        // L'océan : amples et lents, peu de remous ; quelques bulles qui montent.
-        case .summer: return Motion(creaturePeriod: 12...20,
-            ambient: Ambient(kind: .bubble, count: 16, period: 6...12, size: 4...11, opacity: 0.20))
-        // La forêt : feuilles qui tombent (×0,8, plus posées) et rebondissent entre elles.
-        case .autumn: return Motion(creaturePeriod: 6...11,
-            ambient: Ambient(kind: .leaf, count: 22, period: 5...9, size: 8...15, opacity: 0.16),
-            fall: Fall(speed: 44, sway: 28))
-        // La neige : dense, lente, feutrée ; les flocons-souvenirs rebondissent.
-        case .winter: return Motion(creaturePeriod: 14...24,
-            ambient: Ambient(kind: .snow, count: 46, period: 12...22, size: 3...7, opacity: 0.22),
-            fall: Fall(speed: 34, sway: 16))
-        // Le jardin : éclosions douces ; un peu de pollen qui flotte.
-        case .spring: return Motion(creaturePeriod: 11...18,
-            ambient: Ambient(kind: .petal, count: 16, period: 9...16, size: 4...9, opacity: 0.15))
+        case .summer: return Motion(ambient: Ambient(kind: .bubble, count: 8, period: 6...12, size: 4...11, opacity: 0.18))
+        case .autumn: return Motion(ambient: Ambient(kind: .leaf, count: 10, period: 5...9, size: 8...15, opacity: 0.14))
+        case .winter: return Motion(ambient: Ambient(kind: .snow, count: 22, period: 12...22, size: 3...7, opacity: 0.20))
+        case .spring: return Motion(ambient: Ambient(kind: .petal, count: 8, period: 9...16, size: 4...9, opacity: 0.14))
+        }
+    }
+
+    // How the souvenir cast moves this season (the SkyField stage). Tunable dials.
+    enum SkyStyle { case swim, fall, bloom }
+    struct Sky {
+        let style: SkyStyle
+        let speed: ClosedRange<CGFloat> // points per second
+        let glyph: ClosedRange<CGFloat> // font size
+        let symbol: String              // SF Symbol (ignored for .bloom → FlowerGlyph)
+    }
+
+    var sky: Sky {
+        switch self {
+        case .summer: return Sky(style: .swim, speed: 20...44, glyph: 30...48, symbol: "fish.fill")
+        case .autumn: return Sky(style: .fall, speed: 26...46, glyph: 22...32, symbol: "leaf.fill")
+        case .winter: return Sky(style: .fall, speed: 18...34, glyph: 27...39, symbol: "snowflake")
+        case .spring: return Sky(style: .bloom, speed: 0...0, glyph: 26...36, symbol: "")
         }
     }
 }
