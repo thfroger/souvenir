@@ -39,6 +39,7 @@
 
 1. **Écran B : arbre → « Le ciel » saisonnier** (décision produit). Souvenirs = créatures de saison qui bougent : fleurs (printemps), **poissons** (été, « L'océan de … »), feuilles (automne), flocons (hiver). `TimelineView(.animation)`, positions/couleurs **déterministes par id** (stables sur la session). Onglet « Ciel ». Cartes du bas = **filtre ANNÉE** (déroulant : années avec souvenirs + « Toutes ») + **compteur SOUVENIRS** vivant. La **mesure** n'apparaît pas comme créature. Consigné dans `DESIGN_INTEGRATION §0`.
    - Réglages déjà itérés : vitesse (bug de téléportation corrigé = id régénéré 60×/s ; déchiffrement hoisté hors de la boucle d'animation), grille jitterée anti-superposition, poissons ×1,5, direction re-tirée à chaque traversée.
+   - **Densité/vitesse par saison** (2026-06-24) : tout le pacing centralisé dans `Season.motion` (`Motion`/`Ambient`) — un seul cadran à régler. Vitesses foreground distinctes (océan lent/ample, neige paresseuse, automne plus vif). **Couche ambiante décorative** derrière les souvenirs (`ambientLayer`, `AmbientSeed` par index, `.allowsHitTesting(false)`) : bulles montantes l'été, feuilles l'automne, flocons denses l'hiver, pollen au printemps → vraie densité de saison + fond immersif, sans qu'un décor ne soit jamais un souvenir cliquable.
 2. **Auth V1 = équivalent passkey**, pas WebAuthn (cf. `SECURITY §6.3`) : WebAuthn exige un domaine HTTPS + AASA + entitlement, non disponibles ; reporté. Le backend émet déjà des sessions, prêt à recevoir WebAuthn.
 3. **Replis dev (ne shippent pas)** : Keychain → fichier sur simu non signé ; backend en mémoire sur `http://localhost:8787`. Sur **iPhone physique**, `localhost` ne joint pas le Mac → **désormais réglable** : Réglages → section serveur (DEBUG) pour pointer l'IP du Mac (`BackendConfig` + `reconnect()`). Le champ ne contient qu'une adresse (jamais un secret ni de donnée enfant) et est `#if DEBUG`.
 4. **Signature** : `DEVELOPMENT_TEAM` **hors du repo**, dans `ios/Souvenir/Signing.local.xcconfig` (gitignored ; exemple `.example` versionné).
@@ -51,8 +52,7 @@ Build simulateur → screenshot via hooks **temporaires** `DEMO_*` (bypass lock,
 
 1. **Vrais passkeys WebAuthn** (quand un domaine + entitlement existent).
 2. **Persistance backend réelle** (Postgres + object storage) + spikes #1/#2 (plans d'exécution, burst de resync).
-3. **Ciel** : densité/vitesse par saison, fond plus immersif (option).
-4. Impl **Kotlin/Compose** (Android) rejouant les vecteurs crypto.
+3. Impl **Kotlin/Compose** (Android) rejouant les vecteurs crypto.
 
 ## Lancer
 

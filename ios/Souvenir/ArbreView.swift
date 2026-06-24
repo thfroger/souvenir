@@ -71,6 +71,7 @@ struct ArbreView: View {
             TimelineView(.animation) { timeline in
                 let t = timeline.date.timeIntervalSince(start)
                 ZStack {
+                    ambientLayer(t: t, size: geo.size)
                     ForEach(Array(mems.enumerated()), id: \.element.id) { i, mem in
                         element(mem, index: i, count: mems.count, t: t, size: geo.size)
                     }
@@ -93,12 +94,61 @@ struct ArbreView: View {
         }
     }
 
+    // One souvenir's cross/fall/bloom period, drawn from the season's tunable range.
+    private func periodFor(_ r: Seed, salt: Int) -> Double {
+        let range = season.motion.creaturePeriod
+        return range.lowerBound + r.v(salt) * (range.upperBound - range.lowerBound)
+    }
+
+    // Decorative seasonal particles behind the souvenirs — they give each season
+    // its own density and atmosphere without ever pretending to be a memory (no
+    // title, not tappable). Pure index-based: nothing is decrypted here.
+    @ViewBuilder
+    private func ambientLayer(t: Double, size: CGSize) -> some View {
+        let a = season.motion.ambient
+        ZStack {
+            ForEach(0..<a.count, id: \.self) { i in
+                ambientParticle(i, a, t, size)
+            }
+        }
+        .allowsHitTesting(false)
+    }
+
+    @ViewBuilder
+    private func ambientParticle(_ i: Int, _ a: Season.Ambient, _ t: Double, _ s: CGSize) -> some View {
+        let r = AmbientSeed(i)
+        let period = a.period.lowerBound + r.v(1) * (a.period.upperBound - a.period.lowerBound)
+        let prog = ((t / period) + r.v(2)).truncatingRemainder(dividingBy: 1)
+        let glyphSize = a.size.lowerBound + r.v(3) * (a.size.upperBound - a.size.lowerBound)
+        let baseX = CGFloat(r.v(4)) * s.width
+        let color = season.palette[r.idx(5, season.palette.count)]
+        if a.kind.rises {
+            // Bubbles drift up from the seabed, swaying faintly.
+            let y = s.height + 30 - CGFloat(prog) * (s.height + 60)
+            let x = baseX + CGFloat(sin(t * (0.4 + r.v(6) * 0.5) + r.v(7) * 6) * 18)
+            Circle().stroke(color.opacity(a.opacity), lineWidth: 1.5)
+                .frame(width: glyphSize, height: glyphSize)
+                .position(x: x, y: y)
+        } else {
+            // Leaves / snow / pollen fall, swaying and turning.
+            let y = -30 + CGFloat(prog) * (s.height + 60)
+            let sway: CGFloat = a.kind == .snow ? 10 : 26
+            let x = baseX + CGFloat(sin(t * (0.5 + r.v(6) * 0.6) + r.v(7) * 6)) * sway
+            let rot = sin(t * (0.5 + r.v(8)) + r.v(7) * 6) * (a.kind == .snow ? 40 : 80)
+            Image(systemName: a.kind.symbol)
+                .font(.system(size: glyphSize))
+                .foregroundStyle(color.opacity(a.opacity))
+                .rotationEffect(.degrees(rot))
+                .position(x: x, y: y)
+        }
+    }
+
     // ÉTÉ — fish swimming across the screen in vertical lanes, gently bobbing.
     @ViewBuilder
     private func fish(_ mem: Memory, _ r: Seed, _ i: Int, _ n: Int, _ t: Double, _ s: CGSize, _ c: Color) -> some View {
         let lane = (Double(i) + 0.5) / Double(max(1, n))
         let baseY = 40 + CGFloat(lane) * max(1, s.height - 80)
-        let period = 9 + r.v(3) * 6
+        let period = periodFor(r, salt: 3)
         let raw = (t / period) + r.v(4)
         let prog = raw - floor(raw)
         // Direction is re-rolled each crossing → fish randomly head left or right
@@ -106,7 +156,7 @@ struct ArbreView: View {
         let dir: CGFloat = r.dir(Int(floor(raw)))
         let span = s.width + 200
         let x = dir > 0 ? -100 + CGFloat(prog) * span : s.width + 100 - CGFloat(prog) * span
-        let y = baseY + CGFloat(sin(t * (0.7 + r.v(5) * 0.6) + r.v(6) * 6) * 16)
+        let y = baseY + CGFloat(sin(t * (0.55 + r.v(5) * 0.5) + r.v(6) * 6) * 20) // ample, unhurried bob
         node(mem, x: x, y: y, opacity: edgeFade(prog)) {
             Image(systemName: "fish.fill")
                 .font(.system(size: 33 + r.v(7) * 15)) // ~1.5× bigger
@@ -120,7 +170,7 @@ struct ArbreView: View {
     // and rotating as they fall.
     @ViewBuilder
     private func faller(_ mem: Memory, _ r: Seed, _ i: Int, _ n: Int, _ t: Double, _ s: CGSize, _ c: Color, snow: Bool) -> some View {
-        let period = snow ? 13 + r.v(2) * 9 : 7 + r.v(2) * 6
+        let period = periodFor(r, salt: 2)
         let prog = ((t / period) + r.v(3)).truncatingRemainder(dividingBy: 1)
         let y = -60 + CGFloat(prog) * (s.height + 120)
         let swaySpeed = (snow ? 0.6 : 0.9) + r.v(4) * 0.6
@@ -147,7 +197,7 @@ struct ArbreView: View {
         let cellH = s.height / CGFloat(rows)
         let x = (CGFloat(i % cols) + 0.5) * cellW + (CGFloat(r.v(3)) - 0.5) * cellW * 0.4
         let y = (CGFloat(i / cols) + 0.5) * cellH + (CGFloat(r.v(4)) - 0.5) * cellH * 0.4
-        let period = 11 + r.v(2) * 7
+        let period = periodFor(r, salt: 2)
         let local = ((t / period) + Double(i) / Double(max(1, n))).truncatingRemainder(dividingBy: 1)
         let grow = smoothstep(0, 0.28, local)               // sprout
         let scale = grow * (1 - smoothstep(0.82, 1, local))  // bloom then fade away
@@ -261,6 +311,17 @@ private struct Seed {
     }
 }
 
+// Same idea as Seed but keyed by a particle index — ambient decor isn't a memory.
+private struct AmbientSeed {
+    let i: Int
+    init(_ i: Int) { self.i = i }
+    func v(_ salt: Int) -> Double {
+        var h = Hasher(); h.combine(i); h.combine(salt); h.combine(31)
+        return Double(UInt64(bitPattern: Int64(h.finalize())) % 100_000) / 100_000.0
+    }
+    func idx(_ salt: Int, _ mod: Int) -> Int { Int(v(salt) * Double(mod)) % max(1, mod) }
+}
+
 enum Season {
     case spring, summer, autumn, winter
 
@@ -306,6 +367,53 @@ enum Season {
         case .summer: return Palette.bleu
         case .autumn: return Palette.accent
         case .winter: return Palette.bleu
+        }
+    }
+
+    // Decorative ambient particles drifting *behind* the souvenirs (never tappable,
+    // never titled) — pure atmosphere. A memory stays the only real element.
+    enum AmbientKind {
+        case bubble, leaf, snow, petal
+        var symbol: String {
+            switch self {
+            case .bubble: return "circle"
+            case .leaf: return "leaf.fill"
+            case .snow: return "snowflake"
+            case .petal: return "circle.fill" // soft pollen dot
+            }
+        }
+        var rises: Bool { self == .bubble } // bubbles go up, the rest fall
+    }
+
+    struct Ambient {
+        let kind: AmbientKind
+        let count: Int                      // how dense the season feels
+        let period: ClosedRange<Double>     // seconds to cross the screen
+        let size: ClosedRange<Double>
+        let opacity: Double
+    }
+
+    /// All per-season pacing in one place — the dial to tune feel.
+    /// `creaturePeriod` = seconds for one souvenir to cross / fall / bloom.
+    struct Motion {
+        let creaturePeriod: ClosedRange<Double>
+        let ambient: Ambient
+    }
+
+    var motion: Motion {
+        switch self {
+        // L'océan : amples et lents, peu de remous ; quelques bulles qui montent.
+        case .summer: return Motion(creaturePeriod: 12...20,
+            ambient: Ambient(kind: .bubble, count: 16, period: 6...12, size: 4...11, opacity: 0.20))
+        // La forêt : chutes plus vives, beaucoup de feuilles lointaines qui virevoltent.
+        case .autumn: return Motion(creaturePeriod: 6...11,
+            ambient: Ambient(kind: .leaf, count: 22, period: 5...9, size: 8...15, opacity: 0.16))
+        // La neige : dense, lente, feutrée — beaucoup de flocons qui dérivent à peine.
+        case .winter: return Motion(creaturePeriod: 14...24,
+            ambient: Ambient(kind: .snow, count: 46, period: 12...22, size: 3...7, opacity: 0.22))
+        // Le jardin : éclosions douces ; un peu de pollen qui flotte.
+        case .spring: return Motion(creaturePeriod: 11...18,
+            ambient: Ambient(kind: .petal, count: 16, period: 9...16, size: 4...9, opacity: 0.15))
         }
     }
 }
