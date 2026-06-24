@@ -150,7 +150,9 @@ Le risque n°1 d'un produit ZK n'est pas le code illisible, c'est la **dérive d
 |---|----------|------------------------|
 | 1 | Plan d'exécution des requêtes chaudes (§6) — **V1** | Index réels, forme du schéma métadonnées |
 | 2 | Burst de resync sous charge (§6) — **V1** | Back-pressure, upload par lots, dimensionnement |
-| 3 | Sync multi-appareils d'une **même** utilisatrice (§4) — **V1** | Convergence déterministe sans volontés concurrentes ; version vectors pour le LWW par champ sur un seul auteur |
+| 3 | Sync multi-appareils d'une **même** utilisatrice (§4) — **V1** | ✅ **PROTOTYPÉ** (juin 2026, voir `IMPLEMENTATION.md`) : pull delta + **union par UUID d'entrée** (append-only, pas de volontés concurrentes) ; reconstruction d'un coffre depuis le backend vérifiée byte-identique. Version vectors / LWW par champ : pas encore nécessaires (pas d'édition concurrente en V1). |
 | 4 | Merge offline deux **co-parents** (§4) — **V2** | Stratégie de merge fine à deux auteurs, comportement « une/jour » |
+
+> **État d'implémentation V1** (squelette) : spikes #1 (plans d'exécution) et #2 (burst de resync) **non menés** — le backend est un store en mémoire (`backend/`), pas encore Postgres/object storage. Spike #3 prototypé (ci-dessus). Voir `IMPLEMENTATION.md` pour l'inventaire complet.
 
 Ces spikes sont jetables : on prototype, on mesure, **puis** on réécrit la section concernée avec ce qu'on a appris. Un `ARCHITECTURE.md` vrai vaut mieux qu'un `ARCHITECTURE.md` aspirationnel — et c'est le genre de document qu'un auditeur respecte, parce qu'il distingue ce qu'on sait de ce qu'on suppose.

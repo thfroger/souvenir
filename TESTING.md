@@ -13,6 +13,8 @@
 - Tout tourne à **chaque commit**. Les suites « crypto » et « invariants » sont **bloquantes** (un échec casse le build, pas de merge).
 - Les tests liés aux **spikes** (ARCHITECTURE §10) forment une **piste séparée** : ils valident des hypothèses empiriques et alimentent la finalisation des docs ; ils ne bloquent pas tant que la décision n'est pas figée.
 
+> **État d'implémentation V1** (juin 2026, voir `IMPLEMENTATION.md`) : CI à **3 jobs verts** — `crypto-core` (suite Swift §1, dont Shamir), `invariants` (backend `node --test` §2) et `ios-app` (build simulateur). Le backend totalise **22 tests** : invariants + autorisation + **janitor** (§4, blobs orphelins) + **auth équivalent-passkey** (register/challenge/verify, rejets signature/rejeu/expiration). Reste à écrire : tests des **flux d'échec partiel** (§4) plus complets côté app, et les bancs de spikes #1/#2.
+
 ---
 
 ## 1. Tests crypto — propriété & round-trip (BLOQUANT)

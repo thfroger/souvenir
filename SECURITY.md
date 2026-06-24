@@ -139,6 +139,8 @@ Assumé, pas défendu : la **classe média (photo/audio) vs texte** reste infér
 ### 6.3 Auth contournable et déni de service auto-infligé
 Pas de chemin « skip » sur le déverrouillage biométrique. Auth serveur par passkeys. Anti-stuffing par **backoff exponentiel, pas verrouillage dur** : comme il n'existe aucune récupération opérateur, un verrouillage dur permettrait à un attaquant de bloquer volontairement un parent dehors — la sécurité se retournerait en DoS contre nos propres utilisateurs.
 
+> **État d'implémentation V1** (`IMPLEMENTATION.md`) : le déverrouillage biométrique d'entrée (Face ID/Touch ID, sans skip, repli code de l'appareil) est en place. L'auth serveur V1 est un **équivalent passkey** : paire de clés **P-256 liée à l'appareil** (Secure Enclave), enregistrement de la clé publique, puis **challenge → signature → jeton de session** (aucun secret partagé). Mêmes propriétés que les passkeys (asymétrique, anti-phishing, lié à l'appareil) **sans** la cérémonie WebAuthn. Les **vrais passkeys WebAuthn** restent l'objectif, **différés** faute de domaine HTTPS + entitlement Associated Domains ; le backend émet déjà des jetons de session, prêt à recevoir WebAuthn.
+
 ### 6.4 En transit / au repos
 - En transit : TLS + **épinglage de certificat** dans l'app native (compte vraiment vu la menace « serveur réquisitionné servant un MITM »).
 - Au repos : blobs déjà chiffrés E2E ; **chiffrer aussi la base de métadonnées et ses sauvegardes**.
