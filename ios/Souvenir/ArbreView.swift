@@ -169,7 +169,7 @@ struct ArbreView: View {
     // A tappable souvenir: its seasonal glyph + a faint title that fades with it.
     private func node(_ mem: Memory, x: CGFloat, y: CGFloat, opacity: Double,
                       @ViewBuilder glyph: () -> some View) -> some View {
-        Button { withAnimation(.easeInOut(duration: 0.5)) { openedMemory = mem } } label: {
+        Button { withAnimation(.easeInOut(duration: 0.7)) { openedMemory = mem } } label: {
             VStack(spacing: 4) {
                 glyph()
                 Text(mem.title)

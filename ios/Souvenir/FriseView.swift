@@ -29,7 +29,7 @@ struct FriseView: View {
                     header
                     childSelector
                     Button {
-                        withAnimation(.easeInOut(duration: 0.5)) {
+                        withAnimation(.easeInOut(duration: 0.7)) {
                             openedMemory = surpriseAsMemory(SampleData.surprise(for: child))
                         }
                     } label: {
@@ -138,7 +138,7 @@ struct FriseView: View {
     private var timeline: some View {
         VStack(spacing: 0) {
             ForEach(store.memories(for: child)) { memory in
-                TimelineRow(memory: memory) { withAnimation(.easeInOut(duration: 0.5)) { openedMemory = memory } }
+                TimelineRow(memory: memory) { withAnimation(.easeInOut(duration: 0.7)) { openedMemory = memory } }
             }
         }
     }

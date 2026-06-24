@@ -32,7 +32,7 @@
 - **Réglages** (`SettingsView`, hub `DESIGN_INTEGRATION §9`) : entrée Récupération sociale + **section serveur gated `#if DEBUG`** (saisir l'IP du Mac pour synchroniser depuis l'iPhone physique ; normalisation « tape juste l'IP » → `http://IP:8787`). Ne ship jamais dans un build signé.
 - **Frise** (écran A) : timeline + surprise + indicateur de sync. Identité `Memory` **stable** (id de l'entrée).
 - **Ciel** (écran B, ex-Arbre — voir Décisions) : `ArbreView`.
-- **Immersif** (écran C) : `ImmersiveMemoryView` (photo à sa hauteur naturelle, bouton retour visible, lecture audio). **Présenté au niveau de `ContentView`** (au-dessus de la barre du bas), via une **transition lente personnalisée** (`openedMemory` remonté en binding ; montée + fondu `easeInOut 0.5s`, `ContentView.immersiveAnim`) au lieu du `fullScreenCover` système trop brusque. Frise et Ciel partagent la même présentation.
+- **Immersif** (écran C) : `ImmersiveMemoryView`. **Présenté au niveau de `ContentView`** (au-dessus de la barre du bas), transition lente perso (`openedMemory` binding ; montée + fondu `easeInOut 0.7s`, `ContentView.immersiveAnim`). **Photo/dessin** = mise en page dédiée plein écran **zoomable au pinch** (+ pan quand zoomé, double-tap pour basculer ; `MagnificationGesture`/`DragGesture`, `scale` 1→5) avec **légende compacte en bas qui s'efface dès qu'on zoome** (`captionOpacity`). Bouton retour réduit (30pt). Citation/voix/jalon gardent le `scrollLayout`. **Non vérifiable en headless** (les souvenirs de démo n'ont pas de blob image ; + lock biométrique) → à confirmer sur appareil.
 - Vraies polices embarquées (Instrument Serif / Hanken Grotesk / Geist Mono), mode **clair forcé**.
 
 ## Décisions prises en cours de route (au-delà des docs)

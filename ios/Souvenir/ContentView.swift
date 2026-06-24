@@ -20,7 +20,7 @@ struct ContentView: View {
 
     // The immersive view that a tapped souvenir opens into (DESIGN.md §3.B). It
     // animates gently over a slow curve instead of the abrupt system slide.
-    private static let immersiveAnim: Animation = .easeInOut(duration: 0.5)
+    private static let immersiveAnim: Animation = .easeInOut(duration: 0.7)
 
     var body: some View {
         ZStack(alignment: .bottom) {
