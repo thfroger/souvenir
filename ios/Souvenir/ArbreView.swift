@@ -107,7 +107,7 @@ struct ArbreView: View {
         switch style.style {
         case .bloom:
             FlowerGlyph(petal: body.color)
-                .scaleEffect(min(1, smoothstep(0, 1.5, body.age)), anchor: .bottom)
+                .scaleEffect(1.2 * min(1, smoothstep(0, 1.5, body.age)), anchor: .bottom) // ×1,2
         case .swim:
             Image(systemName: style.symbol)
                 .font(.system(size: body.glyph))
@@ -239,7 +239,7 @@ private struct FlowerGlyph: View {
                     .offset(y: -8)
                     .rotationEffect(.degrees(Double(i) / 6 * 360))
             }
-            Circle().fill(Palette.jaune).frame(width: 8, height: 8)
+            Circle().fill(Palette.bleu).frame(width: 8, height: 8) // cœur bleu pastel
         }
         .frame(width: 30, height: 30)
         .shadow(color: petal.opacity(0.35), radius: 5)
@@ -585,7 +585,7 @@ enum Season {
         case .summer: return Sky(style: .swim, speed: 20...44, glyph: 30...48, symbol: "fish.fill")
         case .autumn: return Sky(style: .fall, speed: 26...46, glyph: 22...32, symbol: "leaf.fill")
         case .winter: return Sky(style: .fall, speed: 18...34, glyph: 40...58, symbol: "snowflake") // ×1,5, tailles variées
-        case .spring: return Sky(style: .bloom, speed: 0...0, glyph: 26...36, symbol: "")
+        case .spring: return Sky(style: .bloom, speed: 0...0, glyph: 31...43, symbol: "") // ×1,2 (espacement collision)
         }
     }
 }
