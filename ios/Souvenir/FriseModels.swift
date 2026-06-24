@@ -160,4 +160,42 @@ enum SampleData {
                    note: "Déjà si grande.", audio: nil, pastel: [Palette.jaune, Palette.peche]),
         ]
     }
+
+    // 30 deterministic demo souvenirs spread across the last ~3 years, split between
+    // the two children — seeded into an empty vault so the Ciel/Frise feel lived-in
+    // for a demo. Deterministic so a re-seed yields the same set.
+    static func demoMemories() -> [Memory] {
+        let kinds: [MemoryKind] = [.photo, .citation, .voice, .milestone, .drawing, .photo, .citation, .measure]
+        let titles = [
+            "Premier sourire", "La sieste au soleil", "Le mot rigolo", "Première dent",
+            "Au parc", "Le doudou retrouvé", "Grand éclat de rire", "Premiers pas",
+            "La plage en été", "Le château de sable", "Bain du soir", "La comptine du matin",
+            "Un soleil dessiné", "Premier vélo", "Le gâteau soufflé", "La flaque d'eau",
+            "Sous la couette", "La balançoire", "Le câlin au chat", "La neige au balcon",
+            "Les bottes de pluie", "Le goûter partagé", "La danse du salon", "Premier « je t'aime »",
+            "La cabane en coussins", "Le réveil tout doux", "Au marché", "La feuille d'automne",
+            "Le bain de bulles", "La grande découverte",
+        ]
+        let quotes = ["« encore »", "« papa »", "« tout seul »", "« la lune »", "« pourquoi »", "« câlin »"]
+        return (0..<30).map { i in
+            let child = i % 2 == 0 ? lea : noe
+            let kind = kinds[i % kinds.count]
+            let daysAgo = 18 + Int(Double(i) * (1060.0 / 29.0)) + (i * 17 % 21) // spread over ~3 years
+            let title: String
+            let note: String?
+            let audio: String?
+            switch kind {
+            case .measure:
+                title = "\(72 + (i * 7 % 28)) cm"; note = nil; audio = nil
+            case .citation:
+                title = titles[i % titles.count]; note = quotes[i % quotes.count]; audio = nil
+            case .voice:
+                title = titles[i % titles.count]; note = nil; audio = "0:\(10 + i % 50)"
+            default:
+                title = titles[i % titles.count]; note = nil; audio = nil
+            }
+            return Memory(childID: child.id, kind: kind, daysAgo: daysAgo,
+                          title: title, note: note, audio: audio, pastel: kind.gradient)
+        }
+    }
 }
