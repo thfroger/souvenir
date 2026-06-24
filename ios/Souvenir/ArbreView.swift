@@ -9,7 +9,7 @@ import SwiftUI
 struct ArbreView: View {
     let childID: UUID
     @EnvironmentObject private var store: MemoryStore
-    @State private var openedMemory: Memory?
+    @Binding var openedMemory: Memory?
     @State private var start = Date()
     @State private var selectedYear: Int? // nil = Toutes
     @State private var sky = SkyField() // rotating cast of ~5 souvenirs
@@ -59,9 +59,6 @@ struct ArbreView: View {
             }
             .padding(.horizontal, 26)
             .padding(.top, 20)
-        }
-        .fullScreenCover(item: $openedMemory) { memory in
-            ImmersiveMemoryView(memory: memory, child: child) { openedMemory = nil }
         }
     }
 
@@ -172,7 +169,7 @@ struct ArbreView: View {
     // A tappable souvenir: its seasonal glyph + a faint title that fades with it.
     private func node(_ mem: Memory, x: CGFloat, y: CGFloat, opacity: Double,
                       @ViewBuilder glyph: () -> some View) -> some View {
-        Button { openedMemory = mem } label: {
+        Button { withAnimation(.easeInOut(duration: 0.5)) { openedMemory = mem } } label: {
             VStack(spacing: 4) {
                 glyph()
                 Text(mem.title)
@@ -594,5 +591,5 @@ enum Season {
 }
 
 #Preview {
-    ArbreView(childID: SampleData.lea.id)
+    ArbreView(childID: SampleData.lea.id, openedMemory: .constant(nil))
 }

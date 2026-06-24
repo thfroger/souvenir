@@ -12,18 +12,33 @@ struct ContentView: View {
     @State private var showAdd = false
     @State private var pendingKind: MemoryKind?
     @State private var captureKind: MemoryKind?
+    @State private var openedMemory: Memory?
 
     private var child: Child {
         SampleData.children.first { $0.id == childID } ?? SampleData.lea
     }
 
+    // The immersive view that a tapped souvenir opens into (DESIGN.md §3.B). It
+    // animates gently over a slow curve instead of the abrupt system slide.
+    private static let immersiveAnim: Animation = .easeInOut(duration: 0.5)
+
     var body: some View {
         ZStack(alignment: .bottom) {
             switch tab {
-            case .frise: FriseView(selectedChildID: $childID)
-            case .arbre: ArbreView(childID: childID)
+            case .frise: FriseView(selectedChildID: $childID, openedMemory: $openedMemory)
+            case .arbre: ArbreView(childID: childID, openedMemory: $openedMemory)
             }
             GlassBottomBar(tab: $tab) { showAdd = true }
+
+            if let memory = openedMemory {
+                let memChild = SampleData.children.first { $0.id == memory.childID } ?? child
+                ImmersiveMemoryView(memory: memory, child: memChild) {
+                    withAnimation(Self.immersiveAnim) { openedMemory = nil }
+                }
+                .ignoresSafeArea()
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .zIndex(20)
+            }
         }
         .environmentObject(store)
         .sheet(isPresented: $showAdd, onDismiss: {

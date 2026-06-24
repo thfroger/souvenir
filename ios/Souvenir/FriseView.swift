@@ -6,8 +6,8 @@ import UIKit
 struct FriseView: View {
     @EnvironmentObject private var store: MemoryStore
     @Binding var selectedChildID: UUID
+    @Binding var openedMemory: Memory?
     @State private var showSettings = false
-    @State private var openedMemory: Memory?
 
     private var child: Child {
         SampleData.children.first { $0.id == selectedChildID } ?? SampleData.lea
@@ -29,7 +29,9 @@ struct FriseView: View {
                     header
                     childSelector
                     Button {
-                        openedMemory = surpriseAsMemory(SampleData.surprise(for: child))
+                        withAnimation(.easeInOut(duration: 0.5)) {
+                            openedMemory = surpriseAsMemory(SampleData.surprise(for: child))
+                        }
                     } label: {
                         SurpriseCard(surprise: SampleData.surprise(for: child))
                     }
@@ -51,9 +53,6 @@ struct FriseView: View {
             // social recovery + (DEBUG) the dev server URL.
             SettingsView(childName: child.name) { showSettings = false }
                 .environmentObject(store)
-        }
-        .fullScreenCover(item: $openedMemory) { memory in
-            ImmersiveMemoryView(memory: memory, child: child) { openedMemory = nil }
         }
     }
 
@@ -139,7 +138,7 @@ struct FriseView: View {
     private var timeline: some View {
         VStack(spacing: 0) {
             ForEach(store.memories(for: child)) { memory in
-                TimelineRow(memory: memory) { openedMemory = memory }
+                TimelineRow(memory: memory) { withAnimation(.easeInOut(duration: 0.5)) { openedMemory = memory } }
             }
         }
     }
@@ -357,6 +356,6 @@ struct GlassBottomBar: View {
 }
 
 #Preview {
-    FriseView(selectedChildID: .constant(SampleData.lea.id))
+    FriseView(selectedChildID: .constant(SampleData.lea.id), openedMemory: .constant(nil))
         .environmentObject(MemoryStore())
 }
