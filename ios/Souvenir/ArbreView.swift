@@ -12,6 +12,7 @@ struct ArbreView: View {
     @State private var openedMemory: Memory?
     @State private var start = Date()
     @State private var selectedYear: Int? // nil = Toutes
+    @State private var field = FallingField() // physics for falling seasons
     #if DEBUG
     // Dev-only: lets Réglages force a season to tune the scene. Compiled out of
     // release builds, so the app always follows the real date when shipped.
@@ -82,8 +83,14 @@ struct ArbreView: View {
                 let t = timeline.date.timeIntervalSince(start)
                 ZStack {
                     ambientLayer(t: t, size: geo.size)
-                    ForEach(Array(mems.enumerated()), id: \.element.id) { i, mem in
-                        element(mem, index: i, count: mems.count, t: t, size: geo.size)
+                    if season.motion.fall != nil {
+                        // Autumn leaves / winter snow: a real physics field so falling
+                        // souvenirs bounce off each other and never overlap.
+                        fallingScene(mems, t: t, size: geo.size)
+                    } else {
+                        ForEach(Array(mems.enumerated()), id: \.element.id) { i, mem in
+                            element(mem, index: i, count: mems.count, t: t, size: geo.size)
+                        }
                     }
                 }
             }
@@ -98,9 +105,36 @@ struct ArbreView: View {
         let color = season.palette[r.idx(9, season.palette.count)]
         switch season {
         case .summer: fish(mem, r, index, count, t, size, color)
-        case .autumn: faller(mem, r, index, count, t, size, color, snow: false)
-        case .winter: faller(mem, r, index, count, t, size, color, snow: true)
         case .spring: flower(mem, r, index, count, t, size, color)
+        case .autumn, .winter: EmptyView() // handled by fallingScene (physics)
+        }
+    }
+
+    // AUTOMNE / HIVER — souvenirs fall under a small physics field: gentle gravity,
+    // wall bounces, and elastic collisions so two never sit on top of each other.
+    @ViewBuilder
+    private func fallingScene(_ mems: [Memory], t: Double, size: CGSize) -> some View {
+        let snow = season == .winter
+        let fall = season.motion.fall ?? .init(speed: 60, sway: 20)
+        // Step the simulation for this frame (TimelineView already redraws at 60fps;
+        // the field is a plain reference, so this doesn't re-enter SwiftUI state).
+        let _ = field.frame(mems.map { mem in
+            let r = Seed(mem.id)
+            let glyph = snow ? 27 + r.v(7) * 12 : 20 + r.v(7) * 10
+            return FallingField.Spec(id: mem.id, glyph: CGFloat(glyph))
+        }, fall: fall, at: t, size: size)
+
+        ForEach(field.bodies, id: \.id) { body in
+            if let mem = mems.first(where: { $0.id == body.id }) {
+                let color = season.palette[Seed(mem.id).idx(9, season.palette.count)]
+                node(mem, x: body.pos.x, y: body.pos.y, opacity: 1) {
+                    Image(systemName: snow ? "snowflake" : "leaf.fill")
+                        .font(.system(size: body.glyph))
+                        .foregroundStyle(color)
+                        .rotationEffect(.degrees(body.spin))
+                        .shadow(color: color.opacity(0.3), radius: 4)
+                }
+            }
         }
     }
 
@@ -173,27 +207,6 @@ struct ArbreView: View {
                 .foregroundStyle(c)
                 .scaleEffect(x: dir, y: 1)
                 .shadow(color: c.opacity(0.4), radius: 6)
-        }
-    }
-
-    // AUTOMNE / HIVER — leaves flutter or snow drifts from top to bottom, swaying
-    // and rotating as they fall.
-    @ViewBuilder
-    private func faller(_ mem: Memory, _ r: Seed, _ i: Int, _ n: Int, _ t: Double, _ s: CGSize, _ c: Color, snow: Bool) -> some View {
-        let period = periodFor(r, salt: 2)
-        let prog = ((t / period) + r.v(3)).truncatingRemainder(dividingBy: 1)
-        let y = -60 + CGFloat(prog) * (s.height + 120)
-        let swaySpeed = (snow ? 0.6 : 0.9) + r.v(4) * 0.6
-        let swayAmp = snow ? 14 + r.v(6) * 14 : 24 + r.v(6) * 26
-        let baseX = 30 + CGFloat(r.v(7)) * max(1, s.width - 60)
-        let x = baseX + CGFloat(sin(t * swaySpeed + r.v(5) * 6) * swayAmp)
-        let rot = sin(t * ((snow ? 0.5 : 1.1) + r.v(8)) + r.v(5) * 6) * (snow ? 60 : 70)
-        node(mem, x: x, y: y, opacity: edgeFade(prog)) {
-            Image(systemName: snow ? "snowflake" : "leaf.fill")
-                .font(.system(size: snow ? 27 + r.v(7) * 12 : 20 + r.v(7) * 10)) // flocons ×1,5
-                .foregroundStyle(c)
-                .rotationEffect(.degrees(rot))
-                .shadow(color: c.opacity(0.3), radius: 4)
         }
     }
 
@@ -332,6 +345,131 @@ private struct AmbientSeed {
     func idx(_ salt: Int, _ mod: Int) -> Int { Int(v(salt) * Double(mod)) % max(1, mod) }
 }
 
+// A tiny seeded RNG (LCG) so a souvenir spawns in a stable-ish spot without a
+// global random source. Stream advances on each `next()`.
+private struct SeededRNG {
+    private var state: UInt64
+    init(_ id: UUID, _ salt: Int = 0) {
+        var h = Hasher(); h.combine(id); h.combine(salt)
+        state = UInt64(bitPattern: Int64(h.finalize())) | 1
+    }
+    mutating func next() -> CGFloat {
+        state = state &* 6364136223846793005 &+ 1442695040888963407
+        return CGFloat(state >> 11) / CGFloat(UInt64(1) << 53)
+    }
+}
+
+/// A small physics field for the seasons whose souvenirs fall (autumn leaves,
+/// winter snow). Each souvenir is a soft disc that drifts down under gentle
+/// gravity, bounces off the side walls, and collides elastically with the others
+/// — so two flakes never sit on top of each other. Held as plain state and
+/// stepped from the scene's TimelineView (no SwiftUI re-entrancy).
+final class FallingField {
+    struct Spec { let id: UUID; let glyph: CGFloat }
+    struct Body: Identifiable {
+        let id: UUID
+        var pos: CGPoint
+        var vel: CGVector
+        var radius: CGFloat
+        var glyph: CGFloat
+        var spin: Double
+    }
+
+    private(set) var bodies: [Body] = []
+    private var lastT: Double = 0
+    private var size: CGSize = .zero
+    private var speed: CGFloat = 50
+
+    /// Per-frame entry point: reconcile the body set with the current souvenirs,
+    /// adopt the season's fall tuning, then advance one step.
+    func frame(_ specs: [Spec], fall: Season.Fall, at t: Double, size: CGSize) {
+        self.size = size
+        speed = fall.speed
+        sync(specs, sway: fall.sway)
+        step(to: t)
+    }
+
+    private func sync(_ specs: [Spec], sway: CGFloat) {
+        let wanted = Dictionary(specs.map { ($0.id, $0.glyph) }, uniquingKeysWith: { a, _ in a })
+        bodies.removeAll { wanted[$0.id] == nil }
+        let present = Set(bodies.map { $0.id })
+        for spec in specs where !present.contains(spec.id) {
+            bodies.append(spawn(spec, sway: sway, fresh: false))
+        }
+        // Keep radii in sync if the glyph size changed (e.g. switching autumn↔winter).
+        for i in bodies.indices {
+            if let glyph = wanted[bodies[i].id] {
+                bodies[i].glyph = glyph
+                bodies[i].radius = glyph * 0.42 // a touch tighter than the visible glyph
+            }
+        }
+    }
+
+    private func spawn(_ spec: Spec, sway: CGFloat, fresh: Bool) -> Body {
+        var rng = SeededRNG(spec.id, fresh ? Int(lastT * 1000) : 0)
+        let radius = spec.glyph * 0.42
+        let x = radius + rng.next() * max(1, size.width - 2 * radius)
+        // Stagger initial heights above the screen so they don't arrive in a wall.
+        let y = fresh ? -radius : -rng.next() * max(1, size.height) - radius
+        let vx = (rng.next() - 0.5) * 2 * sway
+        let vy = speed * (0.7 + rng.next() * 0.6)
+        return Body(id: spec.id, pos: CGPoint(x: x, y: y),
+                    vel: CGVector(dx: vx, dy: vy), radius: radius, glyph: spec.glyph,
+                    spin: Double(rng.next()) * 360)
+    }
+
+    private func step(to t: Double) {
+        defer { lastT = t }
+        guard lastT != 0 else { return }
+        let dt = min(t - lastT, 1.0 / 30) // clamp hitches so collisions stay stable
+        guard dt > 0 else { return }
+        let g: CGFloat = 22 // gentle pull back to falling after a bounce
+        for i in bodies.indices {
+            bodies[i].vel.dy += g * CGFloat(dt)
+            bodies[i].vel.dx *= 0.995
+            bodies[i].pos.x += bodies[i].vel.dx * CGFloat(dt)
+            bodies[i].pos.y += bodies[i].vel.dy * CGFloat(dt)
+            bodies[i].spin += Double(bodies[i].vel.dx) * dt * 1.5
+            let r = bodies[i].radius
+            if bodies[i].pos.x < r { bodies[i].pos.x = r; bodies[i].vel.dx = abs(bodies[i].vel.dx) }
+            if bodies[i].pos.x > size.width - r {
+                bodies[i].pos.x = size.width - r; bodies[i].vel.dx = -abs(bodies[i].vel.dx)
+            }
+            if bodies[i].pos.y - r > size.height {
+                bodies[i] = spawn(Spec(id: bodies[i].id, glyph: bodies[i].glyph),
+                                  sway: max(8, abs(bodies[i].vel.dx)), fresh: true)
+            }
+        }
+        resolveCollisions()
+    }
+
+    // Equal-mass elastic resolution: separate the overlap, then reflect the
+    // relative velocity along the contact normal so they head off in new directions.
+    private func resolveCollisions() {
+        guard bodies.count > 1 else { return }
+        for i in 0..<bodies.count {
+            for j in (i + 1)..<bodies.count {
+                let dx = bodies[j].pos.x - bodies[i].pos.x
+                let dy = bodies[j].pos.y - bodies[i].pos.y
+                let minDist = bodies[i].radius + bodies[j].radius
+                let distSq = dx * dx + dy * dy
+                guard distSq < minDist * minDist, distSq > 0.0001 else { continue }
+                let dist = sqrt(distSq)
+                let nx = dx / dist, ny = dy / dist
+                let overlap = (minDist - dist) / 2
+                bodies[i].pos.x -= nx * overlap; bodies[i].pos.y -= ny * overlap
+                bodies[j].pos.x += nx * overlap; bodies[j].pos.y += ny * overlap
+                let rvn = (bodies[j].vel.dx - bodies[i].vel.dx) * nx
+                        + (bodies[j].vel.dy - bodies[i].vel.dy) * ny
+                guard rvn < 0 else { continue } // only if approaching
+                let imp = -(1 + 0.85) * rvn / 2 // restitution 0.85
+                bodies[i].vel.dx -= imp * nx; bodies[i].vel.dy -= imp * ny
+                bodies[j].vel.dx += imp * nx; bodies[j].vel.dy += imp * ny
+            }
+        }
+    }
+}
+
 enum Season {
     case spring, summer, autumn, winter
 
@@ -414,11 +552,19 @@ enum Season {
         let opacity: Double
     }
 
+    // Falling souvenirs (autumn/winter) run through the physics field instead of a
+    // stateless period; nil for seasons that don't fall (swim/bloom).
+    struct Fall {
+        let speed: CGFloat // downward drift, points per second
+        let sway: CGFloat  // horizontal spread of the initial drift
+    }
+
     /// All per-season pacing in one place — the dial to tune feel.
-    /// `creaturePeriod` = seconds for one souvenir to cross / fall / bloom.
+    /// `creaturePeriod` drives swim/bloom seasons; `fall` drives the physics ones.
     struct Motion {
         let creaturePeriod: ClosedRange<Double>
         let ambient: Ambient
+        var fall: Fall? = nil
     }
 
     var motion: Motion {
@@ -426,12 +572,14 @@ enum Season {
         // L'océan : amples et lents, peu de remous ; quelques bulles qui montent.
         case .summer: return Motion(creaturePeriod: 12...20,
             ambient: Ambient(kind: .bubble, count: 16, period: 6...12, size: 4...11, opacity: 0.20))
-        // La forêt : chutes plus vives, beaucoup de feuilles lointaines qui virevoltent.
+        // La forêt : feuilles qui tombent (×0,8, plus posées) et rebondissent entre elles.
         case .autumn: return Motion(creaturePeriod: 6...11,
-            ambient: Ambient(kind: .leaf, count: 22, period: 5...9, size: 8...15, opacity: 0.16))
-        // La neige : dense, lente, feutrée — beaucoup de flocons qui dérivent à peine.
+            ambient: Ambient(kind: .leaf, count: 22, period: 5...9, size: 8...15, opacity: 0.16),
+            fall: Fall(speed: 44, sway: 28))
+        // La neige : dense, lente, feutrée ; les flocons-souvenirs rebondissent.
         case .winter: return Motion(creaturePeriod: 14...24,
-            ambient: Ambient(kind: .snow, count: 46, period: 12...22, size: 3...7, opacity: 0.22))
+            ambient: Ambient(kind: .snow, count: 46, period: 12...22, size: 3...7, opacity: 0.22),
+            fall: Fall(speed: 34, sway: 16))
         // Le jardin : éclosions douces ; un peu de pollen qui flotte.
         case .spring: return Motion(creaturePeriod: 11...18,
             ambient: Ambient(kind: .petal, count: 16, period: 9...16, size: 4...9, opacity: 0.15))
