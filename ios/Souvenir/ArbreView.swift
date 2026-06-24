@@ -11,14 +11,28 @@ struct ArbreView: View {
     @EnvironmentObject private var store: MemoryStore
     @State private var openedMemory: Memory?
     @State private var start = Date()
+    @State private var selectedYear: Int? // nil = Toutes
 
     private var child: Child { SampleData.children.first { $0.id == childID } ?? SampleData.lea }
     private var season: Season { Season.current() }
 
     private var memories: [Memory] {
         let all = store.memories(for: child)
-        return Array((all.isEmpty ? SampleData.memories(for: child) : all).prefix(18))
+        return all.isEmpty ? SampleData.memories(for: child) : all
     }
+
+    // The scene shows souvenirs as creatures; a measure is data, not a creature,
+    // so it is excluded. Filtered by the chosen year (nil = all years mixed).
+    private var filteredMemories: [Memory] {
+        let base = memories.filter { $0.kind != .measure }
+        guard let y = selectedYear, availableYears.contains(y) else { return base }
+        return base.filter { Self.year(of: $0) == y }
+    }
+    private var sceneMemories: [Memory] { Array(filteredMemories.prefix(24)) }
+    private var availableYears: [Int] {
+        Array(Set(memories.filter { $0.kind != .measure }.map { Self.year(of: $0) })).sorted(by: >)
+    }
+    private static func year(of m: Memory) -> Int { Calendar.current.component(.year, from: m.date) }
 
     var body: some View {
         ZStack {
@@ -52,7 +66,7 @@ struct ArbreView: View {
     }
 
     private var scene: some View {
-        let mems = memories // decrypt once per render, not per animation frame
+        let mems = sceneMemories // decrypt once per render, not per animation frame
         return GeometryReader { geo in
             TimelineView(.animation) { timeline in
                 let t = timeline.date.timeIntervalSince(start)
@@ -84,15 +98,18 @@ struct ArbreView: View {
     private func fish(_ mem: Memory, _ r: Seed, _ i: Int, _ n: Int, _ t: Double, _ s: CGSize, _ c: Color) -> some View {
         let lane = (Double(i) + 0.5) / Double(max(1, n))
         let baseY = 40 + CGFloat(lane) * max(1, s.height - 80)
-        let dir: CGFloat = r.v(2) < 0.5 ? 1 : -1
         let period = 9 + r.v(3) * 6
-        let prog = ((t / period) + r.v(4)).truncatingRemainder(dividingBy: 1)
-        let span = s.width + 160
-        let x = dir > 0 ? -80 + CGFloat(prog) * span : s.width + 80 - CGFloat(prog) * span
+        let raw = (t / period) + r.v(4)
+        let prog = raw - floor(raw)
+        // Direction is re-rolled each crossing → fish randomly head left or right
+        // over time (not a fixed per-fish side). They flip while off-screen.
+        let dir: CGFloat = r.dir(Int(floor(raw)))
+        let span = s.width + 200
+        let x = dir > 0 ? -100 + CGFloat(prog) * span : s.width + 100 - CGFloat(prog) * span
         let y = baseY + CGFloat(sin(t * (0.7 + r.v(5) * 0.6) + r.v(6) * 6) * 16)
         node(mem, x: x, y: y, opacity: edgeFade(prog)) {
             Image(systemName: "fish.fill")
-                .font(.system(size: 22 + r.v(7) * 10))
+                .font(.system(size: 33 + r.v(7) * 15)) // ~1.5× bigger
                 .foregroundStyle(c)
                 .scaleEffect(x: dir, y: 1)
                 .shadow(color: c.opacity(0.4), radius: 6)
@@ -159,30 +176,43 @@ struct ArbreView: View {
     }
 
     private var statCards: some View {
-        let stats = SampleData.treeStats(for: child)
-        return HStack(spacing: 14) {
-            statCard("TAILLE", stats.height)
-            statCard("SOUVENIRS", "\(stats.sparks) éclats")
+        HStack(spacing: 14) {
+            yearCard
+            card("SOUVENIRS") {
+                Text("\(filteredMemories.count)").font(Typo.serif(26)).foregroundStyle(Palette.ink)
+            }
         }
     }
 
-    private func statCard(_ label: String, _ value: String) -> some View {
+    // Year picker: the years that actually hold souvenirs, plus "Toutes".
+    private var yearCard: some View {
+        Menu {
+            Button("Toutes") { selectedYear = nil }
+            ForEach(availableYears, id: \.self) { y in
+                Button(String(y)) { selectedYear = y }
+            }
+        } label: {
+            card("ANNÉE") {
+                HStack(spacing: 6) {
+                    Text(selectedYear.map(String.init) ?? "Toutes")
+                        .font(Typo.serif(26)).foregroundStyle(Palette.ink)
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 12, weight: .semibold)).foregroundStyle(Palette.muted)
+                }
+            }
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func card(_ label: String, @ViewBuilder _ value: () -> some View) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(label).font(Typo.mono(11)).tracking(1.5).foregroundStyle(Palette.muted)
-            Text(value).font(Typo.serif(26)).foregroundStyle(Palette.ink)
+            value()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(18)
         .background(.white, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         .shadow(color: Color(hex: 0x50323C).opacity(0.08), radius: 6, y: 3)
-    }
-}
-
-extension SampleData {
-    /// Tree stats — computed client-side from decrypted memories (DESIGN_INTEGRATION §3);
-    /// here placeholder totals. Height is the latest decrypted "Mesure" (§4).
-    static func treeStats(for child: Child) -> (height: String, sparks: Int) {
-        child.id == noe.id ? ("71 cm", 58) : ("78 cm", 142)
     }
 }
 
@@ -224,6 +254,11 @@ private struct Seed {
         return Double(UInt64(bitPattern: Int64(h.finalize())) % 100_000) / 100_000.0
     }
     func idx(_ salt: Int, _ mod: Int) -> Int { Int(v(salt) * Double(mod)) % max(1, mod) }
+    // A direction (+1/-1) that varies per crossing index.
+    func dir(_ crossing: Int) -> CGFloat {
+        var h = Hasher(); h.combine(id); h.combine(crossing); h.combine(777)
+        return (h.finalize() & 1) == 0 ? 1 : -1
+    }
 }
 
 enum Season {
