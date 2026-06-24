@@ -8,7 +8,7 @@ import AVFoundation
 struct ImmersiveMemoryView: View {
     let memory: Memory
     let child: Child
-    let onClose: () -> Void
+    var onClose: () -> Void = {} // the back button now lives in ContentView (safe area)
 
     // Pinch-to-zoom state for photo/drawing memories.
     @State private var scale: CGFloat = 1
@@ -34,10 +34,6 @@ struct ImmersiveMemoryView: View {
             } else {
                 scrollLayout
             }
-
-            backButton
-                .padding(.leading, 16)
-                .padding(.top, 10)
         }
     }
 
@@ -175,18 +171,6 @@ struct ImmersiveMemoryView: View {
                     .font(.system(size: 46))
                     .foregroundStyle(.white.opacity(0.9))
             }
-        }
-    }
-
-    private var backButton: some View {
-        Button(action: onClose) {
-            Image(systemName: "chevron.left")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(Palette.ink)
-                .frame(width: 30, height: 30)
-                .background(.regularMaterial, in: Circle())
-                .overlay(Circle().stroke(.white.opacity(0.6), lineWidth: 1))
-                .shadow(color: Color(hex: 0x50323C).opacity(0.2), radius: 6, y: 1)
         }
     }
 
