@@ -240,7 +240,10 @@ struct ArbreView: View {
                 Text(mem.title)
                     .font(Typo.serif(11))
                     .foregroundStyle(Palette.ink.opacity(0.55))
-                    .fixedSize()
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .frame(maxWidth: 96)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .buttonStyle(.plain)
@@ -397,6 +400,8 @@ final class FallingField {
     private var size: CGSize = .zero
     private var speed: CGFloat = 50
     private var swayBase: CGFloat = 12
+    // Keep the glyph *and its centred title* (≤96pt wide) on screen near the edges.
+    private static let labelMargin: CGFloat = 50
 
     /// Per-frame entry point: reconcile the body set with the current souvenirs,
     /// adopt the season's fall tuning, then advance one step.
@@ -427,11 +432,13 @@ final class FallingField {
     private func spawn(_ spec: Spec, fresh: Bool) -> Body {
         var rng = SeededRNG(spec.id, fresh ? Int(lastT * 1000) : 0)
         let radius = spec.glyph * 0.5
-        // Horizontal lane by index (+ jitter) so even a handful of leaves spread
-        // across the width instead of clustering on a random per-id position.
+        let m = max(radius, Self.labelMargin)
+        // Horizontal lane by index (+ jitter), confined to the label-safe band so even
+        // a handful of leaves spread across the width instead of clustering.
+        let safeW = max(1, size.width - 2 * m)
         let lane = (CGFloat(spec.index) + 0.5) / CGFloat(max(1, spec.count))
-        let jitter = (rng.next() - 0.5) * (size.width / CGFloat(max(1, spec.count))) * 0.7
-        let x = min(max(radius, lane * size.width + jitter), size.width - radius)
+        let jitter = (rng.next() - 0.5) * (safeW / CGFloat(max(1, spec.count))) * 0.7
+        let x = min(max(m, m + lane * safeW + jitter), size.width - m)
         // Respawn enters just above the top; the initial fill spreads down the whole
         // height so the scene is populated from the first frame (not slowly drifting in).
         let y = fresh ? -radius : rng.next() * max(1, size.height)
@@ -463,9 +470,10 @@ final class FallingField {
             bodies[i].pos.y += bodies[i].vel.dy * CGFloat(dt)
             bodies[i].spin += Double(bodies[i].vel.dx) * dt * 1.2
             let r = bodies[i].radius
-            if bodies[i].pos.x < r { bodies[i].pos.x = r; bodies[i].vel.dx = abs(bodies[i].vel.dx) }
-            if bodies[i].pos.x > size.width - r {
-                bodies[i].pos.x = size.width - r; bodies[i].vel.dx = -abs(bodies[i].vel.dx)
+            let m = max(r, Self.labelMargin) // bounce before the title would leave the screen
+            if bodies[i].pos.x < m { bodies[i].pos.x = m; bodies[i].vel.dx = abs(bodies[i].vel.dx) }
+            if bodies[i].pos.x > size.width - m {
+                bodies[i].pos.x = size.width - m; bodies[i].vel.dx = -abs(bodies[i].vel.dx)
             }
             if bodies[i].pos.y - r > size.height {
                 bodies[i] = spawn(Spec(id: bodies[i].id, glyph: bodies[i].glyph,

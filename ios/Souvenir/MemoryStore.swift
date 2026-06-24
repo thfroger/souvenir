@@ -262,11 +262,11 @@ final class MemoryStore: ObservableObject {
     }
 
     private func seedFromSamples() {
-        for child in SampleData.children {
-            for m in SampleData.memories(for: child) {
-                add(childID: child.id, kind: m.kind, title: m.title, note: m.note,
-                    audio: m.audio, createdAt: m.date, persistNow: false)
-            }
+        // 30 demo souvenirs across ~3 years for both children (FriseModels), so a
+        // fresh vault feels lived-in. Civil date travels encrypted via createdAt.
+        for m in SampleData.demoMemories() {
+            add(childID: m.childID, kind: m.kind, title: m.title, note: m.note,
+                audio: m.audio, createdAt: m.date, persistNow: false)
         }
         persist()
     }
