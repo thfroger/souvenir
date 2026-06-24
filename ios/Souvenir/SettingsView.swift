@@ -20,6 +20,7 @@ struct SettingsView: View {
                     title
                     recoveryRow
                     #if DEBUG
+                    DebugSeasonSection()
                     ServerSettingsSection()
                         .environmentObject(store)
                     #endif
@@ -82,6 +83,53 @@ struct SettingsView: View {
 }
 
 #if DEBUG
+/// DEBUG-only: force the Ciel season to tune density/speed without waiting for the
+/// calendar. "Auto" follows the real date. Persisted in UserDefaults; ArbreView
+/// reads the same key via @AppStorage.
+private struct DebugSeasonSection: View {
+    @AppStorage("debugSeason") private var debugSeason = "auto"
+
+    private let options: [(value: String, label: String)] = [
+        ("auto", "Auto (date du jour)"),
+        ("spring", "Printemps"),
+        ("summer", "Été"),
+        ("autumn", "Automne"),
+        ("winter", "Hiver"),
+    ]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("SAISON · DÉVELOPPEMENT")
+                .font(Typo.mono(11)).tracking(2).foregroundStyle(Palette.muted)
+
+            Text("Forcer la saison de l'écran Ciel pour régler densité et vitesse. « Auto » suit la vraie date.")
+                .font(Typo.sans(14)).foregroundStyle(Palette.inkSoft)
+                .lineSpacing(3).fixedSize(horizontal: false, vertical: true)
+
+            Menu {
+                ForEach(options, id: \.value) { opt in
+                    Button(opt.label) { debugSeason = opt.value }
+                }
+            } label: {
+                HStack(spacing: 14) {
+                    Image(systemName: "leaf").foregroundStyle(Palette.accent).frame(width: 22)
+                    Text(options.first { $0.value == debugSeason }?.label ?? "Auto (date du jour)")
+                        .font(Typo.sans(16)).foregroundStyle(Palette.ink)
+                    Spacer()
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 12, weight: .semibold)).foregroundStyle(Palette.muted)
+                }
+                .padding(.vertical, 14).padding(.horizontal, 16)
+                .background(Color.white, in: RoundedRectangle(cornerRadius: 16))
+                .overlay(RoundedRectangle(cornerRadius: 16).stroke(Palette.paperAlt, lineWidth: 1))
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(18)
+        .background(Palette.paperAlt, in: RoundedRectangle(cornerRadius: 20))
+    }
+}
+
 /// DEBUG-only: point the app at the Mac's LAN IP so a physical iPhone can sync
 /// against the dev backend (`localhost` on the phone is the phone itself). Holds
 /// only a server address — never a secret or any child data.

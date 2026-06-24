@@ -12,9 +12,19 @@ struct ArbreView: View {
     @State private var openedMemory: Memory?
     @State private var start = Date()
     @State private var selectedYear: Int? // nil = Toutes
+    #if DEBUG
+    // Dev-only: lets Réglages force a season to tune the scene. Compiled out of
+    // release builds, so the app always follows the real date when shipped.
+    @AppStorage("debugSeason") private var debugSeason = "auto"
+    #endif
 
     private var child: Child { SampleData.children.first { $0.id == childID } ?? SampleData.lea }
-    private var season: Season { Season.current() }
+    private var season: Season {
+        #if DEBUG
+        if let forced = Season(debugName: debugSeason) { return forced }
+        #endif
+        return Season.current()
+    }
 
     private var memories: [Memory] {
         let all = store.memories(for: child)
@@ -331,6 +341,17 @@ enum Season {
         case 6...8: return .summer
         case 9...11: return .autumn
         default: return .winter
+        }
+    }
+
+    // Dev-only mapping for the Réglages season selector ("auto" → nil → real date).
+    init?(debugName: String) {
+        switch debugName {
+        case "spring": self = .spring
+        case "summer": self = .summer
+        case "autumn": self = .autumn
+        case "winter": self = .winter
+        default: return nil
         }
     }
 
