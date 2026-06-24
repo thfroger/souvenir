@@ -28,7 +28,8 @@
 - **Auth appareil** : `DeviceIdentity` (clé P-256 Secure Enclave sur device / logicielle sur simu), `AuthClient` (register→challenge→sign→session), `SecureStore` (Keychain + **repli fichier dev** pour le simu non signé, erreur `-34018`). `MemoryStore` s'authentifie au lancement → jeton de session (plus de `tok-A` dans l'app).
 - **Capture** (`CaptureView`, `MemoryStore`) — 6 types : citation, mesure, photo (bibliothèque), **note vocale** (`AudioRecorder`/lecture réelle), **jalon** (texte), **dessin** (`CameraPicker` → **appareil photo**, `NSCameraUsageDescription`). Photos/dessins **EXIF-strippés** + chiffrés.
 - **Persistance** : index **entièrement chiffré** sur disque (enfant/type/date civile inclus, `§6.4`) ; DEK par souvenir emballée sous la VK (Keychain).
-- **Sync** : push chiffré + **pull/merge multi-appareils** (union par UUID, spike #3). Offline-first (échecs réseau rattrapés).
+- **Sync** : push chiffré + **pull/merge multi-appareils** (union par UUID, spike #3). Offline-first (échecs réseau rattrapés). **URL backend résolue par `BackendConfig`** (repli `localhost:8787` ; override DEBUG-only par UserDefaults ; `MemoryStore.reconnect()` re-authentifie sans relancer).
+- **Réglages** (`SettingsView`, hub `DESIGN_INTEGRATION §9`) : entrée Récupération sociale + **section serveur gated `#if DEBUG`** (saisir l'IP du Mac pour synchroniser depuis l'iPhone physique ; normalisation « tape juste l'IP » → `http://IP:8787`). Ne ship jamais dans un build signé.
 - **Frise** (écran A) : timeline + surprise + indicateur de sync. Identité `Memory` **stable** (id de l'entrée).
 - **Ciel** (écran B, ex-Arbre — voir Décisions) : `ArbreView`.
 - **Immersif** (écran C) : `ImmersiveMemoryView` (photo à sa hauteur naturelle, bouton retour visible, lecture audio).
@@ -39,7 +40,7 @@
 1. **Écran B : arbre → « Le ciel » saisonnier** (décision produit). Souvenirs = créatures de saison qui bougent : fleurs (printemps), **poissons** (été, « L'océan de … »), feuilles (automne), flocons (hiver). `TimelineView(.animation)`, positions/couleurs **déterministes par id** (stables sur la session). Onglet « Ciel ». Cartes du bas = **filtre ANNÉE** (déroulant : années avec souvenirs + « Toutes ») + **compteur SOUVENIRS** vivant. La **mesure** n'apparaît pas comme créature. Consigné dans `DESIGN_INTEGRATION §0`.
    - Réglages déjà itérés : vitesse (bug de téléportation corrigé = id régénéré 60×/s ; déchiffrement hoisté hors de la boucle d'animation), grille jitterée anti-superposition, poissons ×1,5, direction re-tirée à chaque traversée.
 2. **Auth V1 = équivalent passkey**, pas WebAuthn (cf. `SECURITY §6.3`) : WebAuthn exige un domaine HTTPS + AASA + entitlement, non disponibles ; reporté. Le backend émet déjà des sessions, prêt à recevoir WebAuthn.
-3. **Replis dev (ne shippent pas)** : Keychain → fichier sur simu non signé ; backend en mémoire sur `http://localhost:8787`. Sur **iPhone physique**, `localhost` ne joint pas le Mac → sync KO en local (attendu) ; une **URL backend configurable** (IP du Mac) reste à faire.
+3. **Replis dev (ne shippent pas)** : Keychain → fichier sur simu non signé ; backend en mémoire sur `http://localhost:8787`. Sur **iPhone physique**, `localhost` ne joint pas le Mac → **désormais réglable** : Réglages → section serveur (DEBUG) pour pointer l'IP du Mac (`BackendConfig` + `reconnect()`). Le champ ne contient qu'une adresse (jamais un secret ni de donnée enfant) et est `#if DEBUG`.
 4. **Signature** : `DEVELOPMENT_TEAM` **hors du repo**, dans `ios/Souvenir/Signing.local.xcconfig` (gitignored ; exemple `.example` versionné).
 
 ## Méthode de vérif (utile à reproduire)
@@ -48,11 +49,10 @@ Build simulateur → screenshot via hooks **temporaires** `DEMO_*` (bypass lock,
 
 ## Prochaines pistes (par valeur)
 
-1. **URL backend configurable** (sync depuis l'iPhone via l'IP du Mac).
-2. **Vrais passkeys WebAuthn** (quand un domaine + entitlement existent).
-3. **Persistance backend réelle** (Postgres + object storage) + spikes #1/#2 (plans d'exécution, burst de resync).
-4. **Ciel** : densité/vitesse par saison, fond plus immersif (option).
-5. Impl **Kotlin/Compose** (Android) rejouant les vecteurs crypto.
+1. **Vrais passkeys WebAuthn** (quand un domaine + entitlement existent).
+2. **Persistance backend réelle** (Postgres + object storage) + spikes #1/#2 (plans d'exécution, burst de resync).
+3. **Ciel** : densité/vitesse par saison, fond plus immersif (option).
+4. Impl **Kotlin/Compose** (Android) rejouant les vecteurs crypto.
 
 ## Lancer
 
