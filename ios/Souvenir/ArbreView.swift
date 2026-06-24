@@ -291,6 +291,8 @@ final class SkyField {
         var vel: CGVector
         var radius: CGFloat
         var glyph: CGFloat
+        var hw: CGFloat      // half-width of the whole node (glyph + title) for no-overlap
+        var hh: CGFloat      // half-height of the whole node
         var color: Color
         var spin: Double
         var age: Double
@@ -379,6 +381,11 @@ final class SkyField {
         let radius = glyph * 0.5
         let color = palette.randomElement(using: &rng) ?? .gray
         let speed = CGFloat.random(in: style.speed, using: &rng)
+        // Whole-node half-extents (glyph + title beneath it) so separation prevents
+        // glyph–glyph *and* glyph–title overlap. Title width ~6pt/char, capped at 96.
+        let titleW = min(96, CGFloat(mem.title.count) * 6 + 8)
+        let hw = max(radius, titleW * 0.5) + 4
+        let hh = (glyph + 22) * 0.5 + 2 // glyph + spacing + one title line
         let pos: CGPoint
         let vel: CGVector
         switch style.style {
@@ -393,33 +400,32 @@ final class SkyField {
             pos = CGPoint(x: x, y: y)
             vel = CGVector(dx: CGFloat.random(in: -10...10, using: &rng), dy: max(8, speed))
         case .swim:
-            pos = freePosition(radius: radius)
+            pos = freePosition(hw: hw, hh: hh)
             let dir: CGFloat = Bool.random(using: &rng) ? 1 : -1
             let ang = Double.random(in: -0.5...0.5, using: &rng) // mostly horizontal, some rise/dive
             vel = CGVector(dx: dir * speed * CGFloat(cos(ang)), dy: speed * CGFloat(sin(ang)) * 0.6)
         case .bloom:
-            pos = freePosition(radius: radius)
+            pos = freePosition(hw: hw, hh: hh)
             vel = .zero
         }
         return Body(id: slot, memory: mem, pos: pos, vel: vel, radius: radius, glyph: glyph,
-                    color: color, spin: Double.random(in: 0...360, using: &rng), age: 0,
+                    hw: hw, hh: hh, color: color, spin: Double.random(in: 0...360, using: &rng), age: 0,
                     lifetime: Double.random(in: 10...20, using: &rng),
                     wanderPhase: Double.random(in: 0...6.2832, using: &rng),
                     wanderRate: Double.random(in: 0.3...0.8, using: &rng),
                     facing: vel.dx >= 0 ? 1 : -1)
     }
 
-    // A random on-screen spot that doesn't land on another souvenir.
-    private func freePosition(radius: CGFloat) -> CGPoint {
-        let mx = max(radius, Self.labelMargin)
-        let my = max(radius, 30)
-        let xr = mx...max(mx, size.width - mx)
-        let yr = my...max(my, size.height - my)
-        for _ in 0..<14 {
+    // A random on-screen spot whose node box doesn't land on another souvenir's.
+    private func freePosition(hw: CGFloat, hh: CGFloat) -> CGPoint {
+        let xr = hw...max(hw, size.width - hw)
+        let yr = hh...max(hh, size.height - hh)
+        for _ in 0..<18 {
             let p = CGPoint(x: .random(in: xr, using: &rng), y: .random(in: yr, using: &rng))
-            if bodies.allSatisfy({ hypot($0.pos.x - p.x, $0.pos.y - p.y) > $0.radius + radius + 12 }) {
-                return p
+            let clear = bodies.allSatisfy { b in
+                abs(b.pos.x - p.x) > b.hw + hw + 4 || abs(b.pos.y - p.y) > b.hh + hh + 4
             }
+            if clear { return p }
         }
         return CGPoint(x: .random(in: xr, using: &rng), y: .random(in: yr, using: &rng))
     }
@@ -444,28 +450,30 @@ final class SkyField {
         if b.pos.x > size.width - mx { b.pos.x = size.width - mx; b.vel.dx = -abs(b.vel.dx) }
     }
 
-    // Separate any overlap and reflect along the contact normal so two souvenirs
-    // never sit on top of each other and head off in new directions.
+    // Box (AABB) separation over each node's full extent (glyph + title), so two
+    // souvenirs never overlap — neither glyph–glyph nor glyph–title. Resolve along
+    // the axis of least penetration, then nudge them apart.
     private func resolveCollisions() {
         guard bodies.count > 1 else { return }
-        for i in 0..<bodies.count {
-            for j in (i + 1)..<bodies.count {
-                let dx = bodies[j].pos.x - bodies[i].pos.x
-                let dy = bodies[j].pos.y - bodies[i].pos.y
-                let minDist = bodies[i].radius + bodies[j].radius
-                let distSq = dx * dx + dy * dy
-                guard distSq < minDist * minDist, distSq > 0.0001 else { continue }
-                let dist = sqrt(distSq)
-                let nx = dx / dist, ny = dy / dist
-                let overlap = (minDist - dist) / 2
-                bodies[i].pos.x -= nx * overlap; bodies[i].pos.y -= ny * overlap
-                bodies[j].pos.x += nx * overlap; bodies[j].pos.y += ny * overlap
-                let rvn = (bodies[j].vel.dx - bodies[i].vel.dx) * nx
-                        + (bodies[j].vel.dy - bodies[i].vel.dy) * ny
-                guard rvn < 0 else { continue }
-                let imp = -(1 + 0.7) * rvn / 2
-                bodies[i].vel.dx -= imp * nx; bodies[i].vel.dy -= imp * ny
-                bodies[j].vel.dx += imp * nx; bodies[j].vel.dy += imp * ny
+        // A couple of passes so chains of three settle without residual overlap.
+        for _ in 0..<2 {
+            for i in 0..<bodies.count {
+                for j in (i + 1)..<bodies.count {
+                    let dx = bodies[j].pos.x - bodies[i].pos.x
+                    let dy = bodies[j].pos.y - bodies[i].pos.y
+                    let ox = (bodies[i].hw + bodies[j].hw) - abs(dx) // x penetration
+                    let oy = (bodies[i].hh + bodies[j].hh) - abs(dy) // y penetration
+                    guard ox > 0, oy > 0 else { continue }
+                    if ox <= oy {
+                        let nx: CGFloat = dx < 0 ? -1 : 1
+                        bodies[i].pos.x -= nx * ox / 2; bodies[j].pos.x += nx * ox / 2
+                        bodies[i].vel.dx -= nx * 6; bodies[j].vel.dx += nx * 6
+                    } else {
+                        let ny: CGFloat = dy < 0 ? -1 : 1
+                        bodies[i].pos.y -= ny * oy / 2; bodies[j].pos.y += ny * oy / 2
+                        bodies[i].vel.dy -= ny * 6; bodies[j].vel.dy += ny * 6
+                    }
+                }
             }
         }
     }
@@ -579,7 +587,7 @@ enum Season {
         switch self {
         case .summer: return Sky(style: .swim, speed: 20...44, glyph: 30...48, symbol: "fish.fill")
         case .autumn: return Sky(style: .fall, speed: 26...46, glyph: 22...32, symbol: "leaf.fill")
-        case .winter: return Sky(style: .fall, speed: 18...34, glyph: 27...39, symbol: "snowflake")
+        case .winter: return Sky(style: .fall, speed: 18...34, glyph: 40...58, symbol: "snowflake") // ×1,5, tailles variées
         case .spring: return Sky(style: .bloom, speed: 0...0, glyph: 26...36, symbol: "")
         }
     }
