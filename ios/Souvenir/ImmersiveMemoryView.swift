@@ -15,6 +15,8 @@ struct ImmersiveMemoryView: View {
     @State private var lastScale: CGFloat = 1
     @State private var offset: CGSize = .zero
     @State private var lastOffset: CGSize = .zero
+    // Swipe-down-to-dismiss state.
+    @State private var dragDismiss: CGFloat = 0
 
     private var metaLine: String {
         let f = DateFormatter()
@@ -35,6 +37,9 @@ struct ImmersiveMemoryView: View {
                 scrollLayout
             }
         }
+        // Drag the whole view down to dismiss; it follows the finger and fades.
+        .offset(y: dragDismiss)
+        .opacity(1 - min(0.5, Double(dragDismiss / 600)))
     }
 
     private var scrollLayout: some View {
@@ -45,6 +50,24 @@ struct ImmersiveMemoryView: View {
             }
         }
         .ignoresSafeArea(edges: .top)
+        .simultaneousGesture(dismissGesture)
+    }
+
+    // Swipe down (past a threshold or with a flick) to go back. On the scroll layout
+    // it runs simultaneously with the scroll; on the photo it only kicks in when the
+    // image isn't zoomed (otherwise the drag pans the photo).
+    private var dismissGesture: some Gesture {
+        DragGesture(minimumDistance: 12)
+            .onChanged { v in if v.translation.height > 0 { dragDismiss = v.translation.height } }
+            .onEnded { endDismiss($0) }
+    }
+
+    private func endDismiss(_ v: DragGesture.Value) {
+        if v.translation.height > 130 || v.predictedEndTranslation.height > 350 {
+            onClose()
+        } else {
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) { dragDismiss = 0 }
+        }
     }
 
     // MARK: photo layout (zoomable)
@@ -119,14 +142,21 @@ struct ImmersiveMemoryView: View {
             }
     }
 
+    // When zoomed in, the drag pans the photo; at natural size, a downward drag
+    // dismisses (swipe to go back).
     private var panGesture: some Gesture {
         DragGesture()
             .onChanged { value in
-                guard scale > 1 else { return }
-                offset = CGSize(width: lastOffset.width + value.translation.width,
-                                height: lastOffset.height + value.translation.height)
+                if scale > 1 {
+                    offset = CGSize(width: lastOffset.width + value.translation.width,
+                                    height: lastOffset.height + value.translation.height)
+                } else if value.translation.height > 0 {
+                    dragDismiss = value.translation.height
+                }
             }
-            .onEnded { _ in lastOffset = offset }
+            .onEnded { value in
+                if scale > 1 { lastOffset = offset } else { endDismiss(value) }
+            }
     }
 
     private func toggleZoom() {

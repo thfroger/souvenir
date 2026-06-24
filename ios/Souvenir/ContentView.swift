@@ -50,10 +50,12 @@ struct ContentView: View {
                 // area inside it). The back button is placed below, at ContentView
                 // level, so it sits in the safe area (under the status bar) and stays
                 // reachable.
-                ImmersiveMemoryView(memory: memory, child: memChild)
-                    .ignoresSafeArea()
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                    .zIndex(20)
+                ImmersiveMemoryView(memory: memory, child: memChild) {
+                    withAnimation(Self.immersiveAnim) { openedMemory = nil }
+                }
+                .ignoresSafeArea()
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .zIndex(20)
             }
         }
         .overlay(alignment: .topLeading) {
