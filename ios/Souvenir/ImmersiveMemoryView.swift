@@ -57,7 +57,9 @@ struct ImmersiveMemoryView: View {
     // it runs simultaneously with the scroll; on the photo it only kicks in when the
     // image isn't zoomed (otherwise the drag pans the photo).
     private var dismissGesture: some Gesture {
-        DragGesture(minimumDistance: 12)
+        // Global coordinate space so the view's own dismiss-offset doesn't feed back
+        // into the gesture's translation (which made the screen jump).
+        DragGesture(minimumDistance: 12, coordinateSpace: .global)
             .onChanged { v in if v.translation.height > 0 { dragDismiss = v.translation.height } }
             .onEnded { endDismiss($0) }
     }
@@ -145,7 +147,7 @@ struct ImmersiveMemoryView: View {
     // When zoomed in, the drag pans the photo; at natural size, a downward drag
     // dismisses (swipe to go back).
     private var panGesture: some Gesture {
-        DragGesture()
+        DragGesture(coordinateSpace: .global)
             .onChanged { value in
                 if scale > 1 {
                     offset = CGSize(width: lastOffset.width + value.translation.width,
