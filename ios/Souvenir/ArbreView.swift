@@ -180,7 +180,7 @@ struct ArbreView: View {
         let rot = sin(t * ((snow ? 0.5 : 1.1) + r.v(8)) + r.v(5) * 6) * (snow ? 60 : 70)
         node(mem, x: x, y: y, opacity: edgeFade(prog)) {
             Image(systemName: snow ? "snowflake" : "leaf.fill")
-                .font(.system(size: snow ? 18 + r.v(7) * 8 : 20 + r.v(7) * 10))
+                .font(.system(size: snow ? 27 + r.v(7) * 12 : 20 + r.v(7) * 10)) // flocons ×1,5
                 .foregroundStyle(c)
                 .rotationEffect(.degrees(rot))
                 .shadow(color: c.opacity(0.3), radius: 4)
