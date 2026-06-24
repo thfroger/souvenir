@@ -23,6 +23,8 @@ Ordre d'autorité en cas de conflit (le plus haut gagne) :
 
 Règle simple : **un invariant de `SECURITY.md` l'emporte toujours sur un détail de design.** Dans tout ce qui ne touche pas un invariant, le design hi-fi fait foi.
 
+> **`IMPLEMENTATION.md`** (hors hiérarchie d'autorité) = **état vivant du chantier** : ce qui est construit, les décisions prises en cours de route (ex. écran B refondu en « Le ciel » ; auth V1 = équivalent passkey ; replis dev), la méthode de vérif, les prochaines pistes. **À lire pour reprendre le travail**, juste après ce fichier.
+
 ---
 
 ## Règles non négociables pour l'agent

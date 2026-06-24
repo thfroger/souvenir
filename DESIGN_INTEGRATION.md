@@ -22,6 +22,7 @@
 | Photos = placeholders | **À COMPLÉTER** | Strip EXIF à la capture + miniatures chiffrées générées côté client. Voir §4. |
 | `DESIGN.md §7` liste le fichier `Souvenir.dc.html` | **NOM ERRONÉ** | Le fichier réel est `Souvenir - Explorations 3 pistes.dc.html` (cf. table des fichiers de `README.md`). Contexte/exploration uniquement, pas une référence d'interaction. `support.js` (runtime des protos) est présent. |
 | `DESIGN.md §5` mentionne « lettres écrites à l'enfant pour plus tard » *(à venir)* | **CADRÉ V2/V3** | Si réintroduite : un souvenir chiffré + date cible ; « ouverture à la date » = **convention d'affichage côté client** (comme « une photo/jour »), jamais un time-release **serveur** (clé libérée à une date = séquestre = casse le ZK). Aucun verrou temporel cryptographique promis. Voir piège dans `CLAUDE.md`. |
+| Écran B = **arbre** (`DESIGN.md §3.C`, wireframes + hi-fi) | **REMPLACÉ (décision produit, juin 2026)** | Refondu en **« Le ciel » saisonnier** : les souvenirs prennent la forme de la saison et se déplacent à l'écran — fleurs qui poussent (printemps), poissons qui nagent (été : « L'océan de … »), feuilles qui virevoltent (automne), flocons (hiver). Chaque élément reste un souvenir déchiffré, cliquable (ouverture immersive). Onglet renommé **« Ciel »**. Les anciennes cartes stats deviennent un **filtre ANNÉE** (déroulant : années avec souvenirs + « Toutes ») + un **compteur SOUVENIRS** vivant. La mesure (taille) n'apparaît plus comme élément. Détail dans `IMPLEMENTATION.md`. |
 
 ---
 
