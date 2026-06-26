@@ -18,6 +18,10 @@ const server = createServer((req, res) => {
       try { body = JSON.parse(raw); } catch { res.writeHead(400).end('{"error":"bad_json"}'); return; }
     }
     const { status, body: out } = backend.handle({ method: req.method, path: url.pathname, query, token, body });
+    // Dev access log: method, path, status only — no body, no query, no headers.
+    // Paths carry opaque ids/hashes, never cleartext or special-category content
+    // (keeps the "aucun contenu dans les logs" invariant — TESTING.md §2).
+    console.log(`${req.method} ${url.pathname} -> ${status}`);
     res.writeHead(status, { "content-type": "application/json" });
     res.end(JSON.stringify(out));
   });
