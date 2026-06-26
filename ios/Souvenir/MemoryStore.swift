@@ -80,6 +80,12 @@ final class MemoryStore: ObservableObject {
     @Published private(set) var syncing = false
     @Published private(set) var syncedIDs: Set<UUID> = []
 
+    /// Live result of the last reconnect, for the DEBUG server-URL screen so its
+    /// button reflects the real round-trip instead of optimistically claiming
+    /// success. Not used in shipped UI.
+    enum ConnState { case idle, connecting, connected, failed }
+    @Published private(set) var connState: ConnState = .idle
+
     var pendingSyncCount: Int { entries.count - syncedIDs.count }
 
     init() {
@@ -116,7 +122,12 @@ final class MemoryStore: ObservableObject {
     func reconnect() {
         client = nil
         Task { @MainActor in
+            connState = .connecting
             await authenticate()
+            // `authenticate()` only sets `client` when the full register →
+            // challenge → verify round-trip reached the server and returned a
+            // session. So `client != nil` is the ground truth of "connected".
+            connState = client != nil ? .connected : .failed
             syncAll()
             pull(seedIfEmpty: false)
         }

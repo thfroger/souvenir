@@ -40,6 +40,9 @@ struct AuthClient {
         var req = URLRequest(url: baseURL.appending(path: path))
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        // Short timeout so a wrong dev server IP fails fast (the connection-state
+        // button can report "hors ligne" in seconds, not after the 60s default).
+        req.timeoutInterval = 8
         return req
     }
 

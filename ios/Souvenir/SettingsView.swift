@@ -177,12 +177,12 @@ private struct ServerSettingsSection: View {
                 store.reconnect()
                 saved = true
             } label: {
-                Text(saved ? "Connecté ✓" : "Enregistrer et reconnecter")
+                Text(buttonLabel)
                     .font(Typo.sans(16, .semibold))
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 15)
-                    .background(Palette.ink, in: RoundedRectangle(cornerRadius: 100))
+                    .background(buttonBackground, in: RoundedRectangle(cornerRadius: 100))
             }
         }
         .padding(18)
@@ -194,6 +194,26 @@ private struct ServerSettingsSection: View {
         if trimmed.isEmpty { return "→ localhost:8787 (défaut simulateur)" }
         if let url = preview { return "→ \(url.absoluteString)" }
         return "adresse non valide"
+    }
+
+    // The button must report the real reconnect result — not optimistically claim
+    // success — so the on-device sync test actually means something.
+    private var buttonLabel: String {
+        guard saved else { return "Enregistrer et reconnecter" }
+        switch store.connState {
+        case .connecting: return "Connexion…"
+        case .connected:  return "Connecté ✓"
+        case .failed:     return "Hors ligne — réessayer"
+        case .idle:       return "Enregistrer et reconnecter"
+        }
+    }
+
+    private var buttonBackground: Color {
+        guard saved else { return Palette.ink }
+        switch store.connState {
+        case .failed: return Color(red: 0.62, green: 0.26, blue: 0.22) // brick: honest failure
+        default:      return Palette.ink
+        }
     }
 }
 #endif
