@@ -3,7 +3,7 @@
 > **État vivant du chantier** — *pas* un document d'autorité. La précédence reste
 > `SECURITY.md` > `ARCHITECTURE.md` > `TESTING.md` > `DESIGN_INTEGRATION.md` > handoff design.
 > Ce fichier dit *ce qui est construit aujourd'hui* et *les décisions prises en cours de route*,
-> pour reprendre vite. Dernière mise à jour : **2026-06-26**.
+> pour reprendre vite. Dernière mise à jour : **2026-06-30**.
 
 ---
 
@@ -58,7 +58,11 @@ Build simulateur → screenshot via hooks **temporaires** `DEMO_*` (bypass lock,
 
 ## Prochaines pistes (par valeur)
 
-0. **[PRIORITÉ — découvert 2026-06-24 au test sur appareil] Robustesse de la VK + déchiffrement non silencieux.** Symptôme : après réinstall/changement de signature sur iPhone physique, la Frise s'est affichée **vide alors que les 30 souvenirs étaient bien poussés** au backend. Cause : `VaultKeychain.loadOrCreate` a **régénéré une VK** (l'ancienne, dans le Keychain, est devenue inaccessible quand le *keychain access group* a changé avec la signature ; `SecureStore` ne tombe sur le fichier de repli que si le **save** Keychain échoue, pas si un **load** ultérieur ne retrouve plus l'item) → `decrypt` échoue (`KeyWrap.unwrap` avec la mauvaise VK) et **`compactMap` écarte tout en silence**, tandis que `syncAll` pousse le ciphertext sans déchiffrer (d'où « poussé mais invisible »). À faire : (a) ne **jamais** générer une nouvelle VK s'il existe déjà des entrées scellées — refuser/alerter plutôt que repartir à zéro ; persistance VK robuste au changement de signature (ex. `kSecAttrAccessGroup` explicite, ou repli fichier systématiquement écrit) ; (b) **surfacer** l'échec de déchiffrement (« N souvenirs illisibles — clé du coffre indisponible ») au lieu d'une Frise vide. Aligné `SECURITY` (clé perdue = accès perdu, sans séquestre — mais l'app ne doit pas se le faire à elle-même). NB dev : une réinstall **efface aussi l'override d'URL backend** (UserDefaults) → re-saisir l'IP du Mac dans Réglages.
+0. **[FAIT — 2026-06-30] Robustesse de la VK + déchiffrement non silencieux.** Symptôme initial : après réinstall/changement de signature sur iPhone physique, la Frise s'affichait **vide alors que les 30 souvenirs étaient bien poussés** au backend. Cause : `VaultKeychain.loadOrCreate` **régénérait une VK** (l'ancienne, dans le Keychain, inaccessible quand le *keychain access group* change avec la signature) → `decrypt` échouait et **`compactMap` écartait tout en silence** (d'où « poussé mais invisible »). **Corrigé** :
+   - (a) `VaultKeychain` scindé en `load()` (ne crée **jamais**) + `create()` (uniquement vault vierge). `MemoryStore.init` ne mint une VK **que si aucune entrée scellée n'existe** ; sinon `vaultKey = nil` + `keyState = .unavailable`. `add()` refuse de sceller sans VK ; `decrypt()` gère la VK optionnelle. Plus aucune régénération qui orpheline les souvenirs (aligné `SECURITY §7` : clé perdue = accès perdu, **mais l'app ne se l'inflige plus en silence**).
+   - (b) **Bannière honnête** dans la Frise (`keyWarning`) : « N souvenir(s) illisible(s) » + explication (clé introuvable sur cet appareil, copie inexistante ailleurs = ce qui les protège), pilotée par `store.unreadableCount` / `keyState`. Remplace la Frise muette.
+   - Robustesse dev au changement de signature : `SecureStore.save` **miroir fichier systématique en `#if DEBUG` seulement** (jamais en build signé — `SECURITY §3` garde la VK Keychain-only en prod) → la VK (et le vault démo) survit à un changement de team entre installs.
+   - Vérif : build simu vert + suites crypto (17) / backend (22) vertes. Visuel de la bannière **non screenshoté en headless** (stager « entries sans VK » + contourner le lock simu = lourd) → à confirmer au canvas/appareil. NB dev : une réinstall **efface aussi l'override d'URL backend** (UserDefaults) → re-saisir l'IP du Mac dans Réglages.
 
 1. **Vrais passkeys WebAuthn** (quand un domaine + entitlement existent).
 2. **Persistance backend réelle** (Postgres + object storage) + spikes #1/#2 (plans d'exécution, burst de resync).
