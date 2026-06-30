@@ -26,10 +26,25 @@ enum ImageTools {
 /// relaunches (SECURITY.md §3). AfterFirstUnlockThisDeviceOnly: not synced, not
 /// in backups, available once the device has been unlocked.
 enum VaultKeychain {
-    static func loadOrCreate() -> SymmetricKey {
-        if let data = SecureStore.load("vaultKey"), let key = try? SymmetricKey(bytes: [UInt8](data)) { return key }
-        let key = (try? VaultKey.generate()) ?? ((try? SymmetricKey(bytes: [UInt8](repeating: 0, count: 32)))!)
-        SecureStore.save("vaultKey", Data(key.bytes))
+    private static let account = "vaultKey"
+
+    /// Load the existing VK, or nil if none is retrievable on this device.
+    /// **Never creates one.** Minting a fresh VK over already-sealed entries can't
+    /// unwrap their DEKs, so it would orphan every existing memory — the "pushed
+    /// but invisible" failure observed on device after a signing change. A missing
+    /// VK with entries on disk is a "key unavailable" condition the caller must
+    /// surface, not paper over (SECURITY.md §7: a lost key is lost access — but the
+    /// app must never silently inflict that on itself).
+    static func load() -> SymmetricKey? {
+        guard let data = SecureStore.load(account), let key = try? SymmetricKey(bytes: [UInt8](data)) else { return nil }
+        return key
+    }
+
+    /// Mint and persist a brand-new VK. Call **only** when establishing a fresh
+    /// vault (no sealed entries exist yet).
+    static func create() -> SymmetricKey? {
+        guard let key = try? VaultKey.generate() else { return nil }
+        SecureStore.save(account, Data(key.bytes))
         return key
     }
 }
@@ -72,7 +87,10 @@ final class MemoryStore: ObservableObject {
         let sealedBlob: AEAD.Sealed?
     }
 
-    private let vaultKey: SymmetricKey
+    /// nil when the vault key can't be retrieved on this device. Entries then
+    /// can't be decrypted (or newly sealed); surfaced via `keyState`, never
+    /// recovered by minting a replacement.
+    private let vaultKey: SymmetricKey?
     private let fileURL: URL
     private let vault = "vault-A"
     private var client: BackendClient? // set after passkey-equivalent auth
@@ -86,19 +104,44 @@ final class MemoryStore: ObservableObject {
     enum ConnState { case idle, connecting, connected, failed }
     @Published private(set) var connState: ConnState = .idle
 
+    /// Whether this device holds the key that decrypts the vault. `.unavailable`
+    /// means sealed entries exist but their VK isn't retrievable here (e.g. the
+    /// Keychain item was lost to a signing/access-group change). We surface it
+    /// rather than minting a new VK that would orphan everything.
+    enum KeyState { case ready, unavailable }
+    @Published private(set) var keyState: KeyState = .ready
+
     var pendingSyncCount: Int { entries.count - syncedIDs.count }
 
+    /// How many stored entries can't currently be decrypted. > 0 means the Frise
+    /// would otherwise drop them in silence; the UI shows an honest banner instead.
+    var unreadableCount: Int { entries.reduce(0) { $0 + (decrypt($1) == nil ? 1 : 0) } }
+
     init() {
-        vaultKey = VaultKeychain.loadOrCreate()
         fileURL = Self.makeFileURL()
         let loaded = Self.load(from: fileURL)
+        // Resolve the VK without ever regenerating it over existing sealed
+        // entries (that would make every memory undecryptable). Only a genuinely
+        // fresh vault — no entries on disk — gets a brand-new key. Decide from the
+        // local `loaded`, not `self.entries`, which isn't readable until every
+        // stored property is initialized.
+        if let key = VaultKeychain.load() {
+            vaultKey = key
+            keyState = .ready
+        } else if loaded?.isEmpty ?? true {
+            vaultKey = VaultKeychain.create()
+            keyState = vaultKey == nil ? .unavailable : .ready
+        } else {
+            vaultKey = nil
+            keyState = .unavailable
+        }
         entries = loaded ?? []
         // Authenticate (device keypair → session token) before syncing; the app
         // stays fully usable offline if it can't reach the backend (§2).
         Task { @MainActor in
             await authenticate()
             syncAll()
-            pull(seedIfEmpty: loaded == nil)
+            pull(seedIfEmpty: loaded == nil && keyState == .ready)
         }
     }
 
@@ -224,6 +267,9 @@ final class MemoryStore: ObservableObject {
 
     private func add(childID: UUID, kind: MemoryKind, title: String, note: String?,
                      audio: String? = nil, blob: Data? = nil, createdAt: Date = Date(), persistNow: Bool = true) {
+        // No usable vault key → refuse rather than seal under a key we can't trust
+        // to round-trip (keyState already tells the UI why).
+        guard let vaultKey else { return }
         let content = Content(childID: childID, kind: kind, createdAt: createdAt, title: title, note: note, audio: audio)
         guard let payload = try? JSONEncoder().encode(content) else { return }
         do {
@@ -240,6 +286,7 @@ final class MemoryStore: ObservableObject {
 
     private func decrypt(_ e: StoredEntry) -> Memory? {
         guard
+            let vaultKey,
             let dek = try? KeyWrap.unwrap(e.wrappedKey, with: vaultKey),
             let plain = try? AEAD.open(e.sealed, key: dek.bytes),
             let content = try? JSONDecoder().decode(Content.self, from: Data(plain))

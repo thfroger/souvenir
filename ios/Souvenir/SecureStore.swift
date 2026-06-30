@@ -32,7 +32,18 @@ enum SecureStore {
         var add = base
         add[kSecValueData as String] = data
         add[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
-        if SecItemAdd(add as CFDictionary, nil) == errSecSuccess { return true }
+        if SecItemAdd(add as CFDictionary, nil) == errSecSuccess {
+            #if DEBUG
+            // Dev only: also mirror to the file fallback. Between installs the
+            // signing team — and thus the Keychain access group — can change,
+            // which strands the Keychain item while the app container (and its
+            // sealed entries) survive; the file copy lets `load` still find the
+            // VK instead of stranding the demo vault. Never compiled into a
+            // signed/shipped build (SECURITY.md §3 keeps the VK Keychain-only).
+            try? data.write(to: fileURL(account), options: .completeFileProtection)
+            #endif
+            return true
+        }
         try? data.write(to: fileURL(account), options: .completeFileProtection) // dev fallback
         return false
     }
