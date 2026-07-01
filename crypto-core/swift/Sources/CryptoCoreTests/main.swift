@@ -201,4 +201,22 @@ h.test("full recovery flow: shares -> RK -> unwrap MIK (§5)") {
     try expectEqual(try KeyWrap.unwrap(mikUnderRK, with: rkRecovered), mik)
 }
 
+// The social door all the way to the VK (mirrors MemoryStore.setupSocialRecovery /
+// recoverWithShares): the server stores only {MIK-under-RK, VK-under-MIK}; two of
+// three guardian shares rebuild the RK and reach the SAME vault key.
+h.test("social recovery recovers the vault key from any 2 of 3 shares") {
+    let vk = try VaultKey.generate()
+    let mik = try MasterIdentityKey.generate()
+    let rk = try RecoveryKey.generate()
+    let mikUnderRK = try KeyWrap.wrap(mik, under: rk)
+    let vkUnderMIK = try KeyWrap.wrap(vk, under: mik)
+    let shares = try Shamir.split(secret: rk.bytes)
+
+    for pair in [[shares[0], shares[1]], [shares[0], shares[2]], [shares[1], shares[2]]] {
+        let rk2 = try SymmetricKey(bytes: try Shamir.combine(pair))
+        let mik2 = try KeyWrap.unwrap(mikUnderRK, with: rk2)
+        try expectEqual(try KeyWrap.unwrap(vkUnderMIK, with: mik2), vk)
+    }
+}
+
 h.finish()

@@ -109,6 +109,42 @@ struct BackendClient {
         }
     }
 
+    // MARK: social-recovery bundle (SECURITY.md §5 — Shamir over the Recovery Key)
+
+    /// Opaque to the server: the MIK wrapped under the RK (whose Shamir shares live
+    /// with the guardians, never here) and the VK wrapped under the MIK.
+    struct RecoveryBundle {
+        let wrappedMIK_RK: String
+        let wrappedVK: String
+    }
+
+    func putRecovery(_ bundle: RecoveryBundle) async -> Bool {
+        do {
+            var req = request("vaults/\(vault)/recovery", "PUT")
+            req.httpBody = try JSONSerialization.data(withJSONObject: [
+                "wrapped_mik_rk": bundle.wrappedMIK_RK,
+                "wrapped_vk": bundle.wrappedVK,
+            ])
+            try await send(req)
+            return true
+        } catch {
+            return false
+        }
+    }
+
+    func getRecovery() async -> RecoveryBundle? {
+        do {
+            let (data, resp) = try await URLSession.shared.data(for: request("vaults/\(vault)/recovery", "GET"))
+            try ensureOK(resp)
+            let obj = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+            guard let wmrk = obj?["wrapped_mik_rk"] as? String,
+                  let wv = obj?["wrapped_vk"] as? String else { return nil }
+            return RecoveryBundle(wrappedMIK_RK: wmrk, wrappedVK: wv)
+        } catch {
+            return nil
+        }
+    }
+
     // MARK: routes
 
     private func putBlob(hash: String, blob: Data) async throws {

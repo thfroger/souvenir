@@ -16,11 +16,13 @@ struct VaultSyncView: View {
     @State private var step: Step
     @State private var phrase = ""
     @State private var confirm = ""
+    @State private var share1 = ""
+    @State private var share2 = ""
     @State private var working = false
     @State private var error: String?
     @State private var doneMessage = ""
 
-    enum Step { case choose, enroll, recover, done }
+    enum Step { case choose, enroll, recover, recoverShares, done }
 
     init(start: Step = .choose, onClose: @escaping () -> Void) {
         _step = State(initialValue: start)
@@ -34,10 +36,11 @@ struct VaultSyncView: View {
                 VStack(alignment: .leading, spacing: 26) {
                     topBar
                     switch step {
-                    case .choose:  chooseStep
-                    case .enroll:  enrollStep
-                    case .recover: recoverStep
-                    case .done:    doneStep
+                    case .choose:        chooseStep
+                    case .enroll:        enrollStep
+                    case .recover:       recoverStep
+                    case .recoverShares: recoverSharesStep
+                    case .done:          doneStep
                     }
                 }
                 .padding(28)
@@ -115,6 +118,35 @@ struct VaultSyncView: View {
                           enabled: !working && !phrase.isEmpty) {
                 Task { await runRecover() }
             }
+
+            Button { error = nil; step = .recoverShares } label: {
+                Text("Je n'ai pas ma phrase — passer par mes gardiens")
+                    .font(Typo.sans(13, .semibold))
+                    .foregroundStyle(Palette.accent)
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 2)
+        }
+    }
+
+    // MARK: recover via guardian shares (SECURITY.md §5)
+
+    private var recoverSharesStep: some View {
+        VStack(alignment: .leading, spacing: 22) {
+            monoLabel("MES GARDIENS")
+            Text("Deux parts suffisent.")
+                .font(Typo.serif(32)).foregroundStyle(Palette.ink)
+            Text("Demande sa part à **deux** de tes trois gardiens, puis colle-les ici. Ensemble, elles rouvrent ton coffre — aucune seule n'y parvient.")
+                .bodyStyle()
+
+            shareField("Part du 1ᵉʳ gardien", text: $share1)
+            shareField("Part du 2ᵉ gardien", text: $share2)
+
+            errorLine
+            primaryButton(working ? "Reconstruction…" : "Retrouver mes souvenirs",
+                          enabled: !working && !share1.isEmpty && !share2.isEmpty) {
+                Task { await runRecoverShares() }
+            }
         }
     }
 
@@ -168,6 +200,33 @@ struct VaultSyncView: View {
         }
     }
 
+    private func runRecoverShares() async {
+        working = true; error = nil
+        defer { working = false }
+        guard
+            let s1 = MemoryStore.decodeShare(share1),
+            let s2 = MemoryStore.decodeShare(share2)
+        else {
+            error = "Une des parts est mal recopiée. Vérifie-les et réessaie."
+            return
+        }
+        switch await store.recoverWithShares([s1, s2]) {
+        case .success(let readable):
+            doneMessage = readable > 0
+                ? "Tes souvenirs sont de retour — \(readable) déjà lisible\(readable > 1 ? "s" : "") sur cet appareil."
+                : "Coffre rouvert. Tes souvenirs vont réapparaître à mesure qu'ils se synchronisent."
+            step = .done
+        case .wrongPassphrase:
+            error = "Ces deux parts ne rouvrent pas le coffre. Vérifie qu'elles viennent bien de tes gardiens."
+        case .noBundle:
+            error = "Aucun filet de gardiens n'a encore été tissé pour ce coffre."
+        case .offline:
+            error = "Impossible de joindre le coffre. Vérifie ta connexion et réessaie."
+        case .failed:
+            error = "La reconstruction a échoué. Vérifie tes deux parts et réessaie."
+        }
+    }
+
     // MARK: components
 
     @ViewBuilder private var errorLine: some View {
@@ -190,6 +249,20 @@ struct VaultSyncView: View {
                 .font(Typo.sans(16)).foregroundStyle(Palette.ink)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
+        }
+        .padding(.vertical, 14).padding(.horizontal, 16)
+        .background(Color.white, in: RoundedRectangle(cornerRadius: 16))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Palette.paperAlt, lineWidth: 1))
+    }
+
+    private func shareField(_ placeholder: String, text: Binding<String>) -> some View {
+        HStack(spacing: 14) {
+            Image(systemName: "puzzlepiece.extension").foregroundStyle(Palette.accent).frame(width: 22)
+            TextField(placeholder, text: text, axis: .vertical)
+                .font(Typo.mono(13)).foregroundStyle(Palette.ink)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .lineLimit(1...3)
         }
         .padding(.vertical, 14).padding(.horizontal, 16)
         .background(Color.white, in: RoundedRectangle(cornerRadius: 16))

@@ -322,6 +322,76 @@ final class MemoryStore: ObservableObject {
         return await client.getIdentity() != nil
     }
 
+    // MARK: social recovery — Shamir 2-of-3 over the RK (SECURITY.md §5)
+
+    enum RecoverySetupResult { case success([Shamir.Share]), noKey, offline, failed }
+
+    /// Arm the catastrophe safety net: a Recovery Key wraps the same MIK the
+    /// passphrase does (a parallel door onto the identity, §3), and the RK is
+    /// Shamir 2-of-3-split. Only `MIK-under-RK` and `VK-under-MIK` are published;
+    /// the three shares are returned to be handed to guardians and NEVER touch the
+    /// server. Self-checks that any two shares rebuild the RK before claiming
+    /// success (mirrors the §1.6 re-decryption ethos).
+    func setupSocialRecovery() async -> RecoverySetupResult {
+        guard let vaultKey else { return .noKey }
+        guard let client else { return .offline }
+        guard let mik = ensureMIK() else { return .failed }
+        do {
+            let rk = try RecoveryKey.generate()
+            let shares = try Shamir.split(secret: rk.bytes, threshold: 2, shares: 3)
+            guard let check = try? SymmetricKey(bytes: try Shamir.combine([shares[0], shares[1]])), check == rk
+            else { return .failed }
+            let wrappedMIK_RK = try KeyWrap.wrap(mik, under: rk)
+            let wrappedVK = try KeyWrap.wrap(vaultKey, under: mik)
+            guard let wmrk = Self.encodeWrapped(wrappedMIK_RK), let wvk = Self.encodeWrapped(wrappedVK)
+            else { return .failed }
+            guard await client.putRecovery(.init(wrappedMIK_RK: wmrk, wrappedVK: wvk)) else { return .offline }
+            return .success(shares)
+        } catch {
+            return .failed
+        }
+    }
+
+    /// Recover the vault on a keyless device from 2 (of 3) guardian shares: rebuild
+    /// the RK, unwrap the MIK, then the VK, and adopt it — the same endpoint as the
+    /// passphrase, reached through the social door. Fewer than 2 valid shares can't
+    /// reconstruct the RK (Shamir), so this fails cleanly rather than guessing.
+    func recoverWithShares(_ shares: [Shamir.Share]) async -> RecoverResult {
+        guard let client else { return .offline }
+        guard let bundle = await client.getRecovery() else { return .noBundle }
+        guard
+            let wrappedMIK_RK = Self.decodeWrapped(bundle.wrappedMIK_RK),
+            let wrappedVK = Self.decodeWrapped(bundle.wrappedVK)
+        else { return .failed }
+        do {
+            let rk = try SymmetricKey(bytes: try Shamir.combine(shares))
+            guard let mik = try? KeyWrap.unwrap(wrappedMIK_RK, with: rk) else { return .wrongPassphrase }
+            let vk = try KeyWrap.unwrap(wrappedVK, with: mik)
+            vaultKey = vk
+            keyState = .ready
+            SecureStore.save("vaultKey", Data(vk.bytes))
+            SecureStore.save("mik", Data(mik.bytes))
+            entries.removeAll { $0.local }
+            seedFromSamples()
+            let readable = entries.filter { !$0.local && decrypt($0) != nil }.count
+            pull(seedIfEmpty: false)
+            return .success(readable: readable)
+        } catch {
+            return .failed
+        }
+    }
+
+    /// The identity's Master Identity Key: load the device copy, or mint one on
+    /// first use (a device with the VK but no MIK yet — e.g. recovery is armed
+    /// before any passphrase enrollment). SECURITY.md §3: the MIK is the single
+    /// secret every wrap (passphrase, RK, device-local) opens in parallel.
+    private func ensureMIK() -> SymmetricKey? {
+        if let d = SecureStore.load("mik"), let k = try? SymmetricKey(bytes: [UInt8](d)) { return k }
+        guard let mik = try? MasterIdentityKey.generate() else { return nil }
+        SecureStore.save("mik", Data(mik.bytes))
+        return mik
+    }
+
     /// Discard entries that cannot be decrypted with the current vault key —
     /// orphans sealed under a key this identity no longer holds (an old install,
     /// a pre-recovery device key). Gated on `keyState == .ready` so it never nukes
@@ -337,6 +407,19 @@ final class MemoryStore: ObservableObject {
         syncedIDs.subtract(doomed)
         persist()
         return doomed.count
+    }
+
+    /// A guardian share as a portable string (index byte ‖ payload, base64). Handed
+    /// to a guardian out-of-band; re-entered to recover. Never stored server-side.
+    static func encodeShare(_ s: Shamir.Share) -> String {
+        Data([s.index] + s.data).base64EncodedString()
+    }
+
+    static func decodeShare(_ str: String) -> Shamir.Share? {
+        let trimmed = str.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let d = Data(base64Encoded: trimmed), d.count >= 2 else { return nil }
+        let bytes = [UInt8](d)
+        return Shamir.Share(index: bytes[0], data: Array(bytes.dropFirst()))
     }
 
     private static func encodeWrapped(_ w: WrappedKey) -> String? {

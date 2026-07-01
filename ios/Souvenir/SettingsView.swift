@@ -32,7 +32,7 @@ struct SettingsView: View {
             }
         }
         .sheet(isPresented: $showRecovery) {
-            SocialRecoveryView(childName: childName) { showRecovery = false }
+            SocialRecoveryView(childName: childName, store: store) { showRecovery = false }
         }
         .sheet(isPresented: $showSync) {
             VaultSyncView { showSync = false }
