@@ -9,6 +9,7 @@ struct FriseView: View {
     @Binding var openedMemory: Memory?
     @State private var showSettings = false
     @State private var showSync = false
+    @State private var showForget = false
 
     private var child: Child {
         SampleData.children.first { $0.id == selectedChildID } ?? SampleData.lea
@@ -83,22 +84,39 @@ struct FriseView: View {
                     .foregroundStyle(brick)
                 Text(store.keyState == .unavailable
                      ? "La clé de ce coffre est introuvable sur cet appareil. Ces souvenirs restent à l'abri, mais ne peuvent pas être déchiffrés ici — et aucune copie de la clé n'existe ailleurs, c'est ce qui les protège."
-                     : "Leur clé de déchiffrement est indisponible sur cet appareil.")
+                     : "Ils ont été scellés avec une autre clé, absente de cet appareil — sans doute les reliquats d'un ancien coffre. Ils sont irrécupérables, et tu peux les oublier.")
                     .font(Typo.sans(12.5))
                     .foregroundStyle(Palette.inkSoft)
                     .fixedSize(horizontal: false, vertical: true)
-                Button { showSync = true } label: {
-                    Text("Saisir ma phrase de récupération")
-                        .font(Typo.sans(13, .semibold))
-                        .foregroundStyle(brick)
+                if store.keyState == .unavailable {
+                    Button { showSync = true } label: {
+                        Text("Saisir ma phrase de récupération")
+                            .font(Typo.sans(13, .semibold))
+                            .foregroundStyle(brick)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.top, 2)
+                } else {
+                    Button(role: .destructive) { showForget = true } label: {
+                        Text("Oublier ces souvenirs illisibles")
+                            .font(Typo.sans(13, .semibold))
+                            .foregroundStyle(brick)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.top, 2)
                 }
-                .buttonStyle(.plain)
-                .padding(.top, 2)
             }
             .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(brick.opacity(0.08), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(brick.opacity(0.28), lineWidth: 1))
+            .confirmationDialog("Oublier \(n) souvenir\(plural ? "s" : "") illisible\(plural ? "s" : "") ?",
+                                isPresented: $showForget, titleVisibility: .visible) {
+                Button("Oublier définitivement", role: .destructive) { store.forgetUnreadable() }
+                Button("Annuler", role: .cancel) {}
+            } message: {
+                Text("Leur clé n'existe nulle part — ils sont déjà irrécupérables. Cette action les retire seulement de cet appareil.")
+            }
         }
     }
 
