@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// Social-recovery setup (SECURITY.md §5 / DESIGN_INTEGRATION.md §9), framed as
 /// an act of care rather than a cryptographic chore. Three tender steps:
@@ -10,8 +11,8 @@ struct SocialRecoveryView: View {
 
     enum Step { case intro, guardians, sealed }
 
-    init(childName: String, onFinish: @escaping () -> Void) {
-        _model = StateObject(wrappedValue: RecoverySetupModel(childName: childName))
+    init(childName: String, store: MemoryStore, onFinish: @escaping () -> Void) {
+        _model = StateObject(wrappedValue: RecoverySetupModel(childName: childName, store: store))
         self.onFinish = onFinish
     }
 
@@ -78,9 +79,11 @@ struct SocialRecoveryView: View {
                 Text(error).font(Typo.sans(13)).foregroundStyle(.red)
             }
 
-            primaryButton("Tisser le filet", enabled: model.canSeal) {
-                model.seal()
-                if model.isSealed { step = .sealed }
+            primaryButton(model.sealing ? "Tissage…" : "Tisser le filet", enabled: model.canSeal && !model.sealing) {
+                Task {
+                    await model.seal()
+                    if model.isSealed { step = .sealed }
+                }
             }
         }
     }
@@ -113,16 +116,30 @@ struct SocialRecoveryView: View {
             Text("\(sentenceList(model.trimmedNames)) veillent désormais. Chacun reçoit une part qui, seule, ne révèle rien.")
                 .bodyStyle()
 
+            Text("Remets une part à chaque gardien (message privé, en personne…). Il n'a rien à faire d'autre que la garder.")
+                .font(Typo.sans(13.5)).foregroundStyle(Palette.muted)
+                .fixedSize(horizontal: false, vertical: true)
+
             VStack(spacing: 10) {
-                ForEach(model.trimmedNames, id: \.self) { name in
-                    HStack(spacing: 12) {
-                        Image(systemName: "checkmark.shield")
-                            .foregroundStyle(Palette.accent)
-                        Text(name).font(Typo.sans(16)).foregroundStyle(Palette.ink)
-                        Spacer()
-                        Text("part prête")
-                            .font(Typo.mono(11))
-                            .foregroundStyle(Palette.muted)
+                ForEach(Array(model.trimmedNames.enumerated()), id: \.offset) { i, name in
+                    let share = i < model.shareStrings.count ? model.shareStrings[i] : ""
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "checkmark.shield").foregroundStyle(Palette.accent)
+                            Text(name).font(Typo.sans(16)).foregroundStyle(Palette.ink)
+                            Spacer()
+                            Button {
+                                UIPasteboard.general.string = share
+                            } label: {
+                                Label("Copier", systemImage: "doc.on.doc")
+                                    .font(Typo.mono(11)).foregroundStyle(Palette.accent)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        Text(share)
+                            .font(Typo.mono(11)).foregroundStyle(Palette.muted)
+                            .lineLimit(2).truncationMode(.middle)
+                            .textSelection(.enabled)
                     }
                     .padding(.vertical, 12)
                     .padding(.horizontal, 16)
@@ -130,7 +147,7 @@ struct SocialRecoveryView: View {
                 }
             }
 
-            Text("AUCUNE PART NE QUITTE CET APPAREIL EN CLAIR · 2 SUR 3 SUFFISENT · NOUS NE POUVONS JAMAIS RÉCUPÉRER À TA PLACE")
+            Text("AUCUNE PART NE QUITTE CET APPAREIL VERS NOTRE SERVEUR · 2 SUR 3 SUFFISENT · NOUS NE POUVONS JAMAIS RÉCUPÉRER À TA PLACE")
                 .font(Typo.mono(9))
                 .tracking(1)
                 .foregroundStyle(Palette.muted)
@@ -190,5 +207,5 @@ private extension Text {
 }
 
 #Preview {
-    SocialRecoveryView(childName: "Léa", onFinish: {})
+    SocialRecoveryView(childName: "Léa", store: MemoryStore(), onFinish: {})
 }
