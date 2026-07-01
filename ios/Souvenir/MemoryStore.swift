@@ -78,6 +78,26 @@ final class MemoryStore: ObservableObject {
         let sealed: AEAD.Sealed       // encrypted Content
         let sealedBlob: AEAD.Sealed?  // encrypted media blob (image or audio), if any
         let wrappedKey: WrappedKey    // per-entry DEK wrapped under the VK
+        /// Demo/seed scaffolding: local-only, never pushed to the shared vault.
+        /// The samples are deterministic and re-seeded identically on every device,
+        /// so syncing them would only pile duplicate, cross-key "unreadable" rows
+        /// onto the server. Only genuine captures travel.
+        let local: Bool
+
+        init(id: UUID, sealed: AEAD.Sealed, sealedBlob: AEAD.Sealed?, wrappedKey: WrappedKey, local: Bool = false) {
+            self.id = id; self.sealed = sealed; self.sealedBlob = sealedBlob; self.wrappedKey = wrappedKey; self.local = local
+        }
+
+        // Back-compatible decode: entries written before `local` existed load as
+        // non-local (they were already syncable), so no persisted vault breaks.
+        init(from decoder: any Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            id = try c.decode(UUID.self, forKey: .id)
+            sealed = try c.decode(AEAD.Sealed.self, forKey: .sealed)
+            sealedBlob = try c.decodeIfPresent(AEAD.Sealed.self, forKey: .sealedBlob)
+            wrappedKey = try c.decode(WrappedKey.self, forKey: .wrappedKey)
+            local = try c.decodeIfPresent(Bool.self, forKey: .local) ?? false
+        }
     }
 
     /// What gets uploaded as the opaque blob: the entry's ciphertext parts. The
@@ -112,7 +132,10 @@ final class MemoryStore: ObservableObject {
     enum KeyState { case ready, unavailable }
     @Published private(set) var keyState: KeyState = .ready
 
-    var pendingSyncCount: Int { entries.count - syncedIDs.count }
+    /// Only genuine captures count toward "pending sync" — the local-only demo
+    /// seeds are never pushed, so counting them would strand the status at
+    /// "N en attente" forever.
+    var pendingSyncCount: Int { entries.filter { !$0.local && !syncedIDs.contains($0.id) }.count }
 
     /// How many stored entries can't currently be decrypted. > 0 means the Frise
     /// would otherwise drop them in silence; the UI shows an honest banner instead.
@@ -181,7 +204,7 @@ final class MemoryStore: ObservableObject {
     /// client-UUID entries), so this is safe to call on launch and after capture.
     func syncAll() {
         guard let client else { return }
-        let pending = entries.filter { !syncedIDs.contains($0.id) }
+        let pending = entries.filter { !$0.local && !syncedIDs.contains($0.id) }
         guard !pending.isEmpty else { return }
         Task { @MainActor in
             syncing = true
@@ -278,8 +301,12 @@ final class MemoryStore: ObservableObject {
             keyState = .ready
             SecureStore.save("vaultKey", Data(vk.bytes))
             SecureStore.save("mik", Data(mik.bytes))
-            let readable = entries.count - unreadableCount
-            persist()
+            // The local-only demo seeds were sealed under this device's old key;
+            // they never synced, so drop and re-seed them under the adopted VK
+            // rather than leave them stranded as "unreadable".
+            entries.removeAll { $0.local }
+            seedFromSamples()
+            let readable = entries.filter { !$0.local && decrypt($0) != nil }.count
             // Anything we skipped earlier (or new rows) can decrypt now.
             pull(seedIfEmpty: false)
             return .success(readable: readable)
@@ -345,7 +372,8 @@ final class MemoryStore: ObservableObject {
     // MARK: crypto core path
 
     private func add(childID: UUID, kind: MemoryKind, title: String, note: String?,
-                     audio: String? = nil, blob: Data? = nil, createdAt: Date = Date(), persistNow: Bool = true) {
+                     audio: String? = nil, blob: Data? = nil, createdAt: Date = Date(),
+                     persistNow: Bool = true, local: Bool = false) {
         // No usable vault key → refuse rather than seal under a key we can't trust
         // to round-trip (keyState already tells the UI why).
         guard let vaultKey else { return }
@@ -356,7 +384,7 @@ final class MemoryStore: ObservableObject {
             let sealed = try AEAD.seal(Array(payload), key: dek.bytes)
             let sealedBlob = try blob.map { try AEAD.seal(Array($0), key: dek.bytes) }
             let wrapped = try KeyWrap.wrap(dek, under: vaultKey)
-            entries.append(StoredEntry(id: UUID(), sealed: sealed, sealedBlob: sealedBlob, wrappedKey: wrapped))
+            entries.append(StoredEntry(id: UUID(), sealed: sealed, sealedBlob: sealedBlob, wrappedKey: wrapped, local: local))
             if persistNow { persist(); syncAll() }
         } catch {
             // A failed encrypt must never surface a half-written entry (SECURITY.md §1.6).
@@ -403,7 +431,7 @@ final class MemoryStore: ObservableObject {
         // fresh vault feels lived-in. Civil date travels encrypted via createdAt.
         for m in SampleData.demoMemories() {
             add(childID: m.childID, kind: m.kind, title: m.title, note: m.note,
-                audio: m.audio, createdAt: m.date, persistNow: false)
+                audio: m.audio, createdAt: m.date, persistNow: false, local: true)
         }
         persist()
     }
