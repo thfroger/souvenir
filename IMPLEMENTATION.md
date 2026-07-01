@@ -72,6 +72,16 @@ Build simulateur → screenshot via hooks **temporaires** `DEMO_*` (bypass lock,
 2. **Persistance backend réelle** (Postgres + object storage) + spikes #1/#2 (plans d'exécution, burst de resync).
 3. Impl **Kotlin/Compose** (Android) rejouant les vecteurs crypto.
 
+## Décisions à prendre (owner) — issues de la vérif `STORE_COMPLIANCE §9` (2026-07-02)
+
+> Détail et texte des propositions : `STORE_COMPLIANCE.md §10` (brouillons **non ratifiés** — l'agent n'édite pas `SECURITY.md`).
+
+1. **Ratifier §10.1 — invariant « aucune feature ML/vision sur le contenu »** (ferme N2/C3, aujourd'hui `BROKEN` : tient de fait — audit de dépendances vert en CI — mais non inscrit dans la constitution).
+2. **Ratifier §10.2 — élever le strip EXIF au rang d'invariant §1 + test runtime** (ferme 7.5/C9, aujourd'hui `PARTIAL` : codé + gardé statiquement). Nécessite une **cible de tests unitaires iOS** branchée au job `ios-app` (petit feu vert infra).
+3. **Trancher §10.3 — padding par paliers** (`SECURITY §6.2` est `[FIGÉ]` mais **rien ne l'implémente** → C8 `BROKEN`, D4 sur-déclare) : soit **implémenter** (l'échelle des paliers attend un spike, `ARCHITECTURE §6`), soit **affaiblir la déclaration D4** en attendant. Vrai écart code↔constitution.
+4. **Décisions §7 business/légales** (laissées « à trancher », aucun défaut adopté) : rétention IP/logs (D6, proposition 12 mois), adresse trader DSA (F2), **prix** (9,90 €/an cité par le doc mais absent de `SECURITY §10`), artefact break-even (hors repo → audit §9.3 impossible ici).
+5. **Avant premier TestFlight externe** : `ITSAppUsesNonExemptEncryption` dans l'Info.plist + questionnaire export (C11 `TODO`) ; **R3/« suppression de compte »** à recadrer en accountless (= suppression du coffre/identité-appareil).
+
 ## Lancer
 
 - Crypto : `cd crypto-core/swift && swift run CryptoCoreTests` (`brew install libsodium`).
