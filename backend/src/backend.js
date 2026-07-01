@@ -10,6 +10,13 @@ import { createHash, createPublicKey, verify, randomBytes } from "node:crypto";
 // — a title, note, civil date, tag, child, measure… — is content and is refused.
 const ENTRY_INPUT_FIELDS = new Set(["entry_id", "wrapped_key", "blob_hash"]);
 
+// The identity bundle that lets a second trusted device of the SAME user adopt
+// the vault key (SECURITY.md §3). All opaque: the MIK wrapped under a
+// passphrase-derived key (Argon2id), the VK wrapped under the MIK, plus the
+// non-secret KDF salt. The server never sees the passphrase, the MIK or the VK
+// in clear — only ciphertext + a salt.
+const IDENTITY_INPUT_FIELDS = new Set(["salt_b64", "wrapped_mik", "wrapped_vk"]);
+
 // Belt-and-suspenders denylist of content / special-category field names that
 // must never reach the server (SECURITY.md §1.4, §6.2).
 const FORBIDDEN_FIELDS = new Set([
@@ -24,6 +31,7 @@ export class Backend {
     this.blobs = new Map(); // hash -> { bytes: Buffer (opaque ciphertext), uploadedAt: ms }
     this.entries = []; // opaque metadata rows
     this.seqByVault = new Map(); // vault_id -> monotonic seq
+    this.identities = new Map(); // vault_id -> { salt_b64, wrapped_mik, wrapped_vk } (opaque)
     this.logs = []; // content-free structured logs (SECURITY.md §6.2)
 
     // Auth (passkey-equivalent): a device registers a P-256 public key bound to a
@@ -178,6 +186,39 @@ export class Backend {
         .map((e) => this.rowView(e));
       this.log("entry.delta", { vault_id: vaultId, since, count: rows.length });
       return { status: 200, body: { entries: rows } };
+    }
+
+    // PUT /vaults/:vaultId/identity — store the opaque identity bundle that lets
+    // another trusted device of the same user adopt the vault key (SECURITY.md §3).
+    // Only the vault owner may write it; the server only ever sees ciphertext + a
+    // non-secret salt, never the passphrase, the MIK or the VK in clear.
+    if (method === "PUT" && parts[0] === "vaults" && parts[2] === "identity" && parts.length === 3) {
+      const vaultId = parts[1];
+      if (!this.sessions.has(token)) return { status: 401, body: { error: "unauthenticated" } };
+      if (!this.owns(token, vaultId)) return { status: 403, body: { error: "forbidden" } };
+      const keys = Object.keys(body ?? {});
+      if (keys.some((k) => FORBIDDEN_FIELDS.has(k))) return { status: 400, body: { error: "content_refused" } };
+      if (keys.some((k) => !IDENTITY_INPUT_FIELDS.has(k))) return { status: 400, body: { error: "unknown_field" } };
+      if (!body?.salt_b64 || !body?.wrapped_mik || !body?.wrapped_vk) {
+        return { status: 400, body: { error: "missing_identity_fields" } };
+      }
+      this.identities.set(vaultId, {
+        salt_b64: body.salt_b64, wrapped_mik: body.wrapped_mik, wrapped_vk: body.wrapped_vk,
+      });
+      this.log("identity.put", { vault_id: vaultId });
+      return { status: 200, body: { ok: true } };
+    }
+
+    // GET /vaults/:vaultId/identity — fetch the opaque bundle so a second device
+    // can derive the KEK from the user's passphrase and recover the vault key.
+    if (method === "GET" && parts[0] === "vaults" && parts[2] === "identity" && parts.length === 3) {
+      const vaultId = parts[1];
+      if (!this.sessions.has(token)) return { status: 401, body: { error: "unauthenticated" } };
+      if (!this.owns(token, vaultId)) return { status: 403, body: { error: "forbidden" } };
+      const bundle = this.identities.get(vaultId);
+      if (!bundle) return { status: 404, body: { error: "not_found" } };
+      this.log("identity.get", { vault_id: vaultId });
+      return { status: 200, body: bundle };
     }
 
     return { status: 404, body: { error: "no_route" } };

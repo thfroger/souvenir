@@ -66,6 +66,49 @@ struct BackendClient {
         try? await fetchBlob(hash: hash)
     }
 
+    // MARK: identity bundle (SECURITY.md §3 — cross-device vault-key adoption)
+
+    /// All three fields are opaque to the server: the MIK wrapped under a
+    /// passphrase-derived key, the VK wrapped under the MIK, plus the (non-secret)
+    /// KDF salt. The server never sees the passphrase or any key in clear.
+    struct IdentityBundle {
+        let saltB64: String
+        let wrappedMIK: String
+        let wrappedVK: String
+    }
+
+    /// Publish the identity bundle so the user's other trusted devices can adopt
+    /// the same vault key from the passphrase. Best-effort.
+    func putIdentity(_ bundle: IdentityBundle) async -> Bool {
+        do {
+            var req = request("vaults/\(vault)/identity", "PUT")
+            req.httpBody = try JSONSerialization.data(withJSONObject: [
+                "salt_b64": bundle.saltB64,
+                "wrapped_mik": bundle.wrappedMIK,
+                "wrapped_vk": bundle.wrappedVK,
+            ])
+            try await send(req)
+            return true
+        } catch {
+            return false
+        }
+    }
+
+    /// Fetch the identity bundle, or nil if none is published yet (best-effort).
+    func getIdentity() async -> IdentityBundle? {
+        do {
+            let (data, resp) = try await URLSession.shared.data(for: request("vaults/\(vault)/identity", "GET"))
+            try ensureOK(resp)
+            let obj = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+            guard let salt = obj?["salt_b64"] as? String,
+                  let wm = obj?["wrapped_mik"] as? String,
+                  let wv = obj?["wrapped_vk"] as? String else { return nil }
+            return IdentityBundle(saltB64: salt, wrappedMIK: wm, wrappedVK: wv)
+        } catch {
+            return nil
+        }
+    }
+
     // MARK: routes
 
     private func putBlob(hash: String, blob: Data) async throws {

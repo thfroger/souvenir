@@ -10,6 +10,7 @@ struct SettingsView: View {
     let onClose: () -> Void
 
     @State private var showRecovery = false
+    @State private var showSync = false
 
     var body: some View {
         ZStack {
@@ -18,6 +19,7 @@ struct SettingsView: View {
                 VStack(alignment: .leading, spacing: 28) {
                     topBar
                     title
+                    syncRow
                     recoveryRow
                     #if DEBUG
                     DebugSeasonSection()
@@ -32,6 +34,38 @@ struct SettingsView: View {
         .sheet(isPresented: $showRecovery) {
             SocialRecoveryView(childName: childName) { showRecovery = false }
         }
+        .sheet(isPresented: $showSync) {
+            VaultSyncView { showSync = false }
+                .environmentObject(store)
+        }
+    }
+
+    private var syncRow: some View {
+        Button { showSync = true } label: {
+            HStack(spacing: 14) {
+                Image(systemName: "iphone.and.arrow.forward")
+                    .foregroundStyle(Palette.accent)
+                    .frame(width: 24)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Mes appareils")
+                        .font(Typo.sans(16, .medium))
+                        .foregroundStyle(Palette.ink)
+                    Text("Une phrase secrète pour retrouver tes souvenirs partout.")
+                        .font(Typo.sans(13))
+                        .foregroundStyle(Palette.muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Palette.faint)
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.white, in: RoundedRectangle(cornerRadius: 18))
+            .overlay(RoundedRectangle(cornerRadius: 18).stroke(Palette.paperAlt, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
     }
 
     private var topBar: some View {

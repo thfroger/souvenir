@@ -8,6 +8,7 @@ struct FriseView: View {
     @Binding var selectedChildID: UUID
     @Binding var openedMemory: Memory?
     @State private var showSettings = false
+    @State private var showSync = false
 
     private var child: Child {
         SampleData.children.first { $0.id == selectedChildID } ?? SampleData.lea
@@ -55,6 +56,10 @@ struct FriseView: View {
             SettingsView(childName: child.name) { showSettings = false }
                 .environmentObject(store)
         }
+        .sheet(isPresented: $showSync) {
+            VaultSyncView(start: .recover) { showSync = false }
+                .environmentObject(store)
+        }
     }
 
     /// The surprise is shown immersively as a memory from `yearsAgo` back.
@@ -82,6 +87,13 @@ struct FriseView: View {
                     .font(Typo.sans(12.5))
                     .foregroundStyle(Palette.inkSoft)
                     .fixedSize(horizontal: false, vertical: true)
+                Button { showSync = true } label: {
+                    Text("Saisir ma phrase de récupération")
+                        .font(Typo.sans(13, .semibold))
+                        .foregroundStyle(brick)
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 2)
             }
             .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)
