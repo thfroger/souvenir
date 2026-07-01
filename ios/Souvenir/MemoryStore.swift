@@ -322,6 +322,23 @@ final class MemoryStore: ObservableObject {
         return await client.getIdentity() != nil
     }
 
+    /// Discard entries that cannot be decrypted with the current vault key —
+    /// orphans sealed under a key this identity no longer holds (an old install,
+    /// a pre-recovery device key). Gated on `keyState == .ready` so it never nukes
+    /// a vault whose key is merely temporarily missing (there, recovery is the
+    /// right move). Their key is gone for good (SECURITY.md §7), so this is honest
+    /// cleanup, not the loss of anything recoverable.
+    @discardableResult
+    func forgetUnreadable() -> Int {
+        guard keyState == .ready else { return 0 }
+        let doomed = Set(entries.filter { decrypt($0) == nil }.map(\.id))
+        guard !doomed.isEmpty else { return 0 }
+        entries.removeAll { doomed.contains($0.id) }
+        syncedIDs.subtract(doomed)
+        persist()
+        return doomed.count
+    }
+
     private static func encodeWrapped(_ w: WrappedKey) -> String? {
         (try? JSONEncoder().encode(w))?.base64EncodedString()
     }
