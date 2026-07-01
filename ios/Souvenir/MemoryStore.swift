@@ -88,9 +88,10 @@ final class MemoryStore: ObservableObject {
     }
 
     /// nil when the vault key can't be retrieved on this device. Entries then
-    /// can't be decrypted (or newly sealed); surfaced via `keyState`, never
-    /// recovered by minting a replacement.
-    private let vaultKey: SymmetricKey?
+    /// can't be decrypted (or newly sealed); surfaced via `keyState`. Never
+    /// recovered by minting a replacement — only adopted from the user's identity
+    /// bundle via the passphrase (SECURITY.md §3), which is why it's a `var`.
+    private var vaultKey: SymmetricKey?
     private let fileURL: URL
     private let vault = "vault-A"
     private var client: BackendClient? // set after passkey-equivalent auth
@@ -223,6 +224,84 @@ final class MemoryStore: ObservableObject {
             if added { persist() }
             if entries.isEmpty && seedIfEmpty { seedFromSamples(); syncAll() }
         }
+    }
+
+    // MARK: identity — cross-device vault-key sharing (SECURITY.md §3)
+
+    enum EnrollResult { case success, noKey, offline, failed }
+    enum RecoverResult { case success(readable: Int), noBundle, wrongPassphrase, offline, failed }
+
+    /// Run on the device that *holds* the vault key: mint a Master Identity Key,
+    /// wrap the VK under it, and wrap the MIK under a key derived from the user's
+    /// passphrase (Argon2id). Publish only ciphertext + the (non-secret) salt, so
+    /// another trusted device can recover the same VK from the passphrase. No
+    /// memory is ever re-encrypted — the VK is unchanged (the §3 structural win).
+    func enrollPassphrase(_ passphrase: String) async -> EnrollResult {
+        guard let vaultKey else { return .noKey }
+        guard let client else { return .offline }
+        do {
+            let salt = try KDF.generateSalt()
+            let kek = try SymmetricKey(bytes: KDF.deriveKey(password: Array(passphrase.utf8), salt: salt))
+            let mik = try MasterIdentityKey.generate()
+            let wrappedMIK = try KeyWrap.wrap(mik, under: kek)
+            let wrappedVK = try KeyWrap.wrap(vaultKey, under: mik)
+            guard let wmB64 = Self.encodeWrapped(wrappedMIK), let wvB64 = Self.encodeWrapped(wrappedVK) else { return .failed }
+            let bundle = BackendClient.IdentityBundle(saltB64: Data(salt).base64EncodedString(), wrappedMIK: wmB64, wrappedVK: wvB64)
+            guard await client.putIdentity(bundle) else { return .offline }
+            // Keep the MIK on this device too (§3: device-local availability), so a
+            // later passphrase change re-wraps the MIK without re-deriving from VK.
+            SecureStore.save("mik", Data(mik.bytes))
+            return .success
+        } catch {
+            return .failed
+        }
+    }
+
+    /// Run on a device that does NOT yet hold the vault key: fetch the identity
+    /// bundle, derive the KEK from the passphrase, unwrap MIK → VK, and *adopt*
+    /// that VK as this device's vault key. A wrong passphrase fails the AEAD auth
+    /// on the MIK unwrap — surfaced honestly, never a crash, never a guess.
+    func recoverWithPassphrase(_ passphrase: String) async -> RecoverResult {
+        guard let client else { return .offline }
+        guard let bundle = await client.getIdentity() else { return .noBundle }
+        guard
+            let saltData = Data(base64Encoded: bundle.saltB64),
+            let wrappedMIK = Self.decodeWrapped(bundle.wrappedMIK),
+            let wrappedVK = Self.decodeWrapped(bundle.wrappedVK)
+        else { return .failed }
+        do {
+            let kek = try SymmetricKey(bytes: KDF.deriveKey(password: Array(passphrase.utf8), salt: Array(saltData)))
+            guard let mik = try? KeyWrap.unwrap(wrappedMIK, with: kek) else { return .wrongPassphrase }
+            let vk = try KeyWrap.unwrap(wrappedVK, with: mik)
+            // Adopt the identity's VK for good on this device.
+            vaultKey = vk
+            keyState = .ready
+            SecureStore.save("vaultKey", Data(vk.bytes))
+            SecureStore.save("mik", Data(mik.bytes))
+            let readable = entries.count - unreadableCount
+            persist()
+            // Anything we skipped earlier (or new rows) can decrypt now.
+            pull(seedIfEmpty: false)
+            return .success(readable: readable)
+        } catch {
+            return .failed
+        }
+    }
+
+    /// Whether the user has already published an identity bundle (so the UI can
+    /// offer "enter passphrase on another device" vs "set one up"). Best-effort.
+    func hasPublishedIdentity() async -> Bool {
+        guard let client else { return false }
+        return await client.getIdentity() != nil
+    }
+
+    private static func encodeWrapped(_ w: WrappedKey) -> String? {
+        (try? JSONEncoder().encode(w))?.base64EncodedString()
+    }
+
+    private static func decodeWrapped(_ s: String) -> WrappedKey? {
+        guard let d = Data(base64Encoded: s) else { return nil }
+        return try? JSONDecoder().decode(WrappedKey.self, from: d)
     }
 
     // MARK: read
