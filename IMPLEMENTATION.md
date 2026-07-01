@@ -24,7 +24,7 @@
 - **Log d'accès dev** (`server.js`) : `méthode chemin → statut` seulement (jamais corps/query/headers ; chemins = ids/hashes opaques) — utile pour suivre une sync depuis l'appareil sans casser l'invariant « aucun contenu dans les logs » (`TESTING §2`, qui inspecte le journal structuré `b.logs`, pas la console).
 - **Bundle d'identité** (`PUT/GET /vaults/:id/identity`) : stocke `{salt, wrapped_mik, wrapped_vk}` **opaques** (ciphertext + sel non-secret) pour le partage de VK entre appareils d'une même utilisatrice (`SECURITY §3`). Owner-gated, allowlist de champs, refus du contenu/catégorie spéciale ; log `identity.put/get` = `vault_id` seulement.
 - **Bundle de récupération** (`PUT/GET /vaults/:id/recovery`, `SECURITY §5`) : stocke `{wrapped_mik_rk, wrapped_vk}` **opaques** (MIK emballée sous le RK Shamir-splitté ; VK sous MIK → autonome). **Les parts Shamir ne touchent jamais le serveur.** Owner-gated, allowlist, refus contenu/part ; log `recovery.put/get` = `vault_id`.
-- **38 tests** : invariants + autorisation + janitor + auth + **identité** + **récupération** (round-trip, cross-vault 403, opacité, refus de part/contenu, champs manquants).
+- **41 tests** : invariants + autorisation + janitor + auth + **identité** + **récupération** + **audit de dépendances** (round-trip, cross-vault 403, opacité, refus de part/contenu, + scan statique bloquant : aucun SDK analytics/crash/pub/tracking/ML/speech ; garde-fou EXIF sur le chemin d'ingest photo — `STORE_COMPLIANCE §8` C3/C4/C5/C9).
 
 ### `ios/` (SwiftUI, natif — `ios/Souvenir/`)
 - **Entrée** : `RootView` → `LockView` (déverrouillage **Face ID/Touch ID**, sans skip, repli code ; `NSFaceIDUsageDescription` requis). `ContentView`/store créés **après** déverrouillage.
