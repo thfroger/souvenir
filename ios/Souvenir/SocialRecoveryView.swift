@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import UniformTypeIdentifiers
 
 /// Social-recovery setup (SECURITY.md §5 / DESIGN_INTEGRATION.md §9), framed as
 /// an act of care rather than a cryptographic chore. Three tender steps:
@@ -129,7 +130,15 @@ struct SocialRecoveryView: View {
                             Text(name).font(Typo.sans(16)).foregroundStyle(Palette.ink)
                             Spacer()
                             Button {
-                                UIPasteboard.general.string = share
+                                // A raw share on the open pasteboard is a leak
+                                // channel (SECURITY §5): Universal Clipboard would
+                                // sync it to other devices and any app could read
+                                // it. localOnly + a short expiry bound both.
+                                UIPasteboard.general.setItems(
+                                    [[UTType.utf8PlainText.identifier: share]],
+                                    options: [.localOnly: true,
+                                              .expirationDate: Date().addingTimeInterval(180)]
+                                )
                             } label: {
                                 Label("Copier", systemImage: "doc.on.doc")
                                     .font(Typo.mono(11)).foregroundStyle(Palette.accent)
@@ -147,7 +156,7 @@ struct SocialRecoveryView: View {
                 }
             }
 
-            Text("AUCUNE PART NE QUITTE CET APPAREIL VERS NOTRE SERVEUR · 2 SUR 3 SUFFISENT · NOUS NE POUVONS JAMAIS RÉCUPÉRER À TA PLACE")
+            Text("AUCUNE PART NE QUITTE CET APPAREIL VERS NOTRE SERVEUR · COPIE LOCALE UNIQUEMENT, EFFACÉE APRÈS 3 MIN · 2 SUR 3 SUFFISENT · NOUS NE POUVONS JAMAIS RÉCUPÉRER À TA PLACE")
                 .font(Typo.mono(9))
                 .tracking(1)
                 .foregroundStyle(Palette.muted)

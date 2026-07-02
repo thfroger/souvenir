@@ -94,19 +94,19 @@ struct BackendClient {
         }
     }
 
-    /// Fetch the identity bundle, or nil if none is published yet (best-effort).
-    func getIdentity() async -> IdentityBundle? {
-        do {
-            let (data, resp) = try await URLSession.shared.data(for: request("vaults/\(vault)/identity", "GET"))
-            try ensureOK(resp)
-            let obj = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-            guard let salt = obj?["salt_b64"] as? String,
-                  let wm = obj?["wrapped_mik"] as? String,
-                  let wv = obj?["wrapped_vk"] as? String else { return nil }
-            return IdentityBundle(saltB64: salt, wrappedMIK: wm, wrappedVK: wv)
-        } catch {
-            return nil
-        }
+    /// Fetch the identity bundle. `nil` means the server answered 404 — no bundle
+    /// was ever published. A network/server failure THROWS instead: collapsing it
+    /// into nil would tell an enrolled user "no passphrase was ever set" whenever
+    /// the connection drops.
+    func getIdentity() async throws -> IdentityBundle? {
+        let (data, resp) = try await URLSession.shared.data(for: request("vaults/\(vault)/identity", "GET"))
+        if (resp as? HTTPURLResponse)?.statusCode == 404 { return nil }
+        try ensureOK(resp)
+        let obj = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        guard let salt = obj?["salt_b64"] as? String,
+              let wm = obj?["wrapped_mik"] as? String,
+              let wv = obj?["wrapped_vk"] as? String else { throw URLError(.cannotParseResponse) }
+        return IdentityBundle(saltB64: salt, wrappedMIK: wm, wrappedVK: wv)
     }
 
     // MARK: social-recovery bundle (SECURITY.md §5 — Shamir over the Recovery Key)
@@ -132,17 +132,15 @@ struct BackendClient {
         }
     }
 
-    func getRecovery() async -> RecoveryBundle? {
-        do {
-            let (data, resp) = try await URLSession.shared.data(for: request("vaults/\(vault)/recovery", "GET"))
-            try ensureOK(resp)
-            let obj = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-            guard let wmrk = obj?["wrapped_mik_rk"] as? String,
-                  let wv = obj?["wrapped_vk"] as? String else { return nil }
-            return RecoveryBundle(wrappedMIK_RK: wmrk, wrappedVK: wv)
-        } catch {
-            return nil
-        }
+    /// Same contract as `getIdentity`: nil = 404 (never armed), throw = unreachable.
+    func getRecovery() async throws -> RecoveryBundle? {
+        let (data, resp) = try await URLSession.shared.data(for: request("vaults/\(vault)/recovery", "GET"))
+        if (resp as? HTTPURLResponse)?.statusCode == 404 { return nil }
+        try ensureOK(resp)
+        let obj = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        guard let wmrk = obj?["wrapped_mik_rk"] as? String,
+              let wv = obj?["wrapped_vk"] as? String else { throw URLError(.cannotParseResponse) }
+        return RecoveryBundle(wrappedMIK_RK: wmrk, wrappedVK: wv)
     }
 
     // MARK: routes

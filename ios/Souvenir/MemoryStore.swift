@@ -118,6 +118,11 @@ final class MemoryStore: ObservableObject {
     @Published private var entries: [StoredEntry] = []
     @Published private(set) var syncing = false
     @Published private(set) var syncedIDs: Set<UUID> = []
+    /// Ids the user explicitly forgot (unreadable orphans). Persisted so `pull`
+    /// never resurrects them from the server — without this, a forgotten
+    /// server-origin row would be re-downloaded on every launch and the banner
+    /// would come back forever. Ids only: nothing about content.
+    private var forgottenIDs: Set<UUID> = []
 
     /// Live result of the last reconnect, for the DEBUG server-URL screen so its
     /// button reflects the real round-trip instead of optimistically claiming
@@ -139,7 +144,10 @@ final class MemoryStore: ObservableObject {
 
     /// How many stored entries can't currently be decrypted. > 0 means the Frise
     /// would otherwise drop them in silence; the UI shows an honest banner instead.
-    var unreadableCount: Int { entries.reduce(0) { $0 + (decrypt($1) == nil ? 1 : 0) } }
+    /// Read from SwiftUI `body`, so it must stay cheap: `canDecrypt` (DEK unwrap +
+    /// small content open) — never the full `decrypt`, whose eager media-blob open
+    /// would re-decrypt every photo/audio on each render.
+    var unreadableCount: Int { entries.reduce(0) { $0 + (canDecrypt($1) ? 0 : 1) } }
 
     init() {
         fileURL = Self.makeFileURL()
@@ -152,14 +160,15 @@ final class MemoryStore: ObservableObject {
         if let key = VaultKeychain.load() {
             vaultKey = key
             keyState = .ready
-        } else if loaded?.isEmpty ?? true {
+        } else if loaded?.entries.isEmpty ?? true {
             vaultKey = VaultKeychain.create()
             keyState = vaultKey == nil ? .unavailable : .ready
         } else {
             vaultKey = nil
             keyState = .unavailable
         }
-        entries = loaded ?? []
+        entries = loaded?.entries ?? []
+        forgottenIDs = Set(loaded?.forgotten ?? [])
         // Authenticate (device keypair → session token) before syncing; the app
         // stays fully usable offline if it can't reach the backend (§2).
         Task { @MainActor in
@@ -209,11 +218,17 @@ final class MemoryStore: ObservableObject {
         Task { @MainActor in
             syncing = true
             for e in pending {
+                // `pending` is a snapshot; each `await` below is a suspension point
+                // where `forgetUnreadable()` may run. Re-check the entry still
+                // exists so a just-forgotten orphan is never pushed to the server
+                // (which has no delete route) nor ghost-inserted into syncedIDs.
+                guard entries.contains(where: { $0.id == e.id }), !forgottenIDs.contains(e.id) else { continue }
                 guard
                     let blob = try? JSONEncoder().encode(BlobPayload(sealed: e.sealed, sealedBlob: e.sealedBlob)),
                     let wk = try? JSONEncoder().encode(e.wrappedKey)
                 else { continue }
-                if await client.upload(entryID: e.id.uuidString, wrappedKeyB64: wk.base64EncodedString(), blob: blob) {
+                if await client.upload(entryID: e.id.uuidString, wrappedKeyB64: wk.base64EncodedString(), blob: blob),
+                   entries.contains(where: { $0.id == e.id }) {
                     syncedIDs.insert(e.id)
                 }
             }
@@ -235,6 +250,7 @@ final class MemoryStore: ObservableObject {
                 guard
                     let eid = UUID(uuidString: row.entryID),
                     !entries.contains(where: { $0.id == eid }),
+                    !forgottenIDs.contains(eid), // the user forgot it — stays forgotten
                     let blobData = await client.blob(hash: row.blobHash),
                     let payload = try? JSONDecoder().decode(BlobPayload.self, from: blobData),
                     let wkData = Data(base64Encoded: row.wrappedKey),
@@ -254,26 +270,26 @@ final class MemoryStore: ObservableObject {
     enum EnrollResult { case success, noKey, offline, failed }
     enum RecoverResult { case success(readable: Int), noBundle, wrongPassphrase, offline, failed }
 
-    /// Run on the device that *holds* the vault key: mint a Master Identity Key,
-    /// wrap the VK under it, and wrap the MIK under a key derived from the user's
+    /// Run on the device that *holds* the vault key: wrap the VK under the
+    /// identity's MIK, and wrap the MIK under a key derived from the user's
     /// passphrase (Argon2id). Publish only ciphertext + the (non-secret) salt, so
     /// another trusted device can recover the same VK from the passphrase. No
     /// memory is ever re-encrypted — the VK is unchanged (the §3 structural win).
+    /// Uses `ensureMIK`, never a fresh key: the MIK is the SINGLE secret every
+    /// door (passphrase, RK, device) wraps in parallel — minting one here would
+    /// silently diverge from an already-published recovery bundle.
     func enrollPassphrase(_ passphrase: String) async -> EnrollResult {
         guard let vaultKey else { return .noKey }
         guard let client else { return .offline }
+        guard let mik = ensureMIK() else { return .failed }
         do {
             let salt = try KDF.generateSalt()
-            let kek = try SymmetricKey(bytes: KDF.deriveKey(password: Array(passphrase.utf8), salt: salt))
-            let mik = try MasterIdentityKey.generate()
+            let kek = try await Self.deriveKEK(passphrase: passphrase, salt: salt)
             let wrappedMIK = try KeyWrap.wrap(mik, under: kek)
             let wrappedVK = try KeyWrap.wrap(vaultKey, under: mik)
             guard let wmB64 = Self.encodeWrapped(wrappedMIK), let wvB64 = Self.encodeWrapped(wrappedVK) else { return .failed }
             let bundle = BackendClient.IdentityBundle(saltB64: Data(salt).base64EncodedString(), wrappedMIK: wmB64, wrappedVK: wvB64)
             guard await client.putIdentity(bundle) else { return .offline }
-            // Keep the MIK on this device too (§3: device-local availability), so a
-            // later passphrase change re-wraps the MIK without re-deriving from VK.
-            SecureStore.save("mik", Data(mik.bytes))
             return .success
         } catch {
             return .failed
@@ -286,40 +302,50 @@ final class MemoryStore: ObservableObject {
     /// on the MIK unwrap — surfaced honestly, never a crash, never a guess.
     func recoverWithPassphrase(_ passphrase: String) async -> RecoverResult {
         guard let client else { return .offline }
-        guard let bundle = await client.getIdentity() else { return .noBundle }
+        let fetched: BackendClient.IdentityBundle?
+        do { fetched = try await client.getIdentity() } catch { return .offline }
+        guard let bundle = fetched else { return .noBundle }
         guard
             let saltData = Data(base64Encoded: bundle.saltB64),
             let wrappedMIK = Self.decodeWrapped(bundle.wrappedMIK),
             let wrappedVK = Self.decodeWrapped(bundle.wrappedVK)
         else { return .failed }
         do {
-            let kek = try SymmetricKey(bytes: KDF.deriveKey(password: Array(passphrase.utf8), salt: Array(saltData)))
+            let kek = try await Self.deriveKEK(passphrase: passphrase, salt: Array(saltData))
             guard let mik = try? KeyWrap.unwrap(wrappedMIK, with: kek) else { return .wrongPassphrase }
             let vk = try KeyWrap.unwrap(wrappedVK, with: mik)
-            // Adopt the identity's VK for good on this device.
-            vaultKey = vk
-            keyState = .ready
-            SecureStore.save("vaultKey", Data(vk.bytes))
-            SecureStore.save("mik", Data(mik.bytes))
-            // The local-only demo seeds were sealed under this device's old key;
-            // they never synced, so drop and re-seed them under the adopted VK
-            // rather than leave them stranded as "unreadable".
-            entries.removeAll { $0.local }
-            seedFromSamples()
-            let readable = entries.filter { !$0.local && decrypt($0) != nil }.count
-            // Anything we skipped earlier (or new rows) can decrypt now.
-            pull(seedIfEmpty: false)
-            return .success(readable: readable)
+            return adopt(vk: vk, mik: mik)
         } catch {
             return .failed
         }
     }
 
-    /// Whether the user has already published an identity bundle (so the UI can
-    /// offer "enter passphrase on another device" vs "set one up"). Best-effort.
-    func hasPublishedIdentity() async -> Bool {
-        guard let client else { return false }
-        return await client.getIdentity() != nil
+    /// Argon2id is deliberately slow (~interactive limits, 64 MB); the store is
+    /// @MainActor, so hop the derivation off it — otherwise every enroll/recover
+    /// freezes the UI for the whole derivation.
+    private static func deriveKEK(passphrase: String, salt: [UInt8]) async throws -> SymmetricKey {
+        let pw = Array(passphrase.utf8)
+        return try await Task.detached(priority: .userInitiated) {
+            try SymmetricKey(bytes: KDF.deriveKey(password: pw, salt: salt))
+        }.value
+    }
+
+    /// Adopt an identity's VK on this device — the single landing point of BOTH
+    /// recovery doors (passphrase, guardian shares), so their behavior can't drift.
+    private func adopt(vk: SymmetricKey, mik: SymmetricKey) -> RecoverResult {
+        vaultKey = vk
+        keyState = .ready
+        SecureStore.save("vaultKey", Data(vk.bytes))
+        SecureStore.save("mik", Data(mik.bytes))
+        // Local demo seeds were sealed under this device's previous key — they are
+        // scaffolding, not user data. Drop them and do NOT re-seed: a recovered
+        // vault is a real vault, it must not gain fabricated memories.
+        entries.removeAll { $0.local }
+        let readable = entries.filter { !$0.local && canDecrypt($0) }.count
+        persist()
+        // Anything we skipped earlier (or new rows) can decrypt now.
+        pull(seedIfEmpty: false)
+        return .success(readable: readable)
     }
 
     // MARK: social recovery — Shamir 2-of-3 over the RK (SECURITY.md §5)
@@ -358,7 +384,9 @@ final class MemoryStore: ObservableObject {
     /// reconstruct the RK (Shamir), so this fails cleanly rather than guessing.
     func recoverWithShares(_ shares: [Shamir.Share]) async -> RecoverResult {
         guard let client else { return .offline }
-        guard let bundle = await client.getRecovery() else { return .noBundle }
+        let fetched: BackendClient.RecoveryBundle?
+        do { fetched = try await client.getRecovery() } catch { return .offline }
+        guard let bundle = fetched else { return .noBundle }
         guard
             let wrappedMIK_RK = Self.decodeWrapped(bundle.wrappedMIK_RK),
             let wrappedVK = Self.decodeWrapped(bundle.wrappedVK)
@@ -367,15 +395,7 @@ final class MemoryStore: ObservableObject {
             let rk = try SymmetricKey(bytes: try Shamir.combine(shares))
             guard let mik = try? KeyWrap.unwrap(wrappedMIK_RK, with: rk) else { return .wrongPassphrase }
             let vk = try KeyWrap.unwrap(wrappedVK, with: mik)
-            vaultKey = vk
-            keyState = .ready
-            SecureStore.save("vaultKey", Data(vk.bytes))
-            SecureStore.save("mik", Data(mik.bytes))
-            entries.removeAll { $0.local }
-            seedFromSamples()
-            let readable = entries.filter { !$0.local && decrypt($0) != nil }.count
-            pull(seedIfEmpty: false)
-            return .success(readable: readable)
+            return adopt(vk: vk, mik: mik)
         } catch {
             return .failed
         }
@@ -401,10 +421,13 @@ final class MemoryStore: ObservableObject {
     @discardableResult
     func forgetUnreadable() -> Int {
         guard keyState == .ready else { return 0 }
-        let doomed = Set(entries.filter { decrypt($0) == nil }.map(\.id))
+        let doomed = Set(entries.filter { !canDecrypt($0) }.map(\.id))
         guard !doomed.isEmpty else { return 0 }
         entries.removeAll { doomed.contains($0.id) }
         syncedIDs.subtract(doomed)
+        // Remember the forgetting itself: `pull` skips these ids, so a
+        // server-origin orphan can't resurrect on the next launch.
+        forgottenIDs.formUnion(doomed)
         persist()
         return doomed.count
     }
@@ -491,6 +514,14 @@ final class MemoryStore: ObservableObject {
         }
     }
 
+    /// Cheap readability test: DEK unwrap + small-content open only — never the
+    /// media blob. This is what render-path counters (`unreadableCount`) and bulk
+    /// scans (`forgetUnreadable`, `adopt`) use; `decrypt` stays the display path.
+    private func canDecrypt(_ e: StoredEntry) -> Bool {
+        guard let vaultKey, let dek = try? KeyWrap.unwrap(e.wrappedKey, with: vaultKey) else { return false }
+        return (try? AEAD.open(e.sealed, key: dek.bytes)) != nil
+    }
+
     private func decrypt(_ e: StoredEntry) -> Memory? {
         guard
             let vaultKey,
@@ -509,14 +540,27 @@ final class MemoryStore: ObservableObject {
 
     // MARK: persistence
 
+    /// On-disk shape: sealed entries + the ids the user forgot. Ids are opaque
+    /// UUIDs — nothing about content leaks from this file beyond what the sealed
+    /// entries already are (ciphertext).
+    private struct VaultFile: Codable {
+        var entries: [StoredEntry]
+        var forgotten: [UUID]
+    }
+
     private func persist() {
-        guard let data = try? JSONEncoder().encode(entries) else { return }
+        guard let data = try? JSONEncoder().encode(VaultFile(entries: entries, forgotten: Array(forgottenIDs))) else { return }
         try? data.write(to: fileURL, options: .atomic)
     }
 
-    private static func load(from url: URL) -> [StoredEntry]? {
+    private static func load(from url: URL) -> VaultFile? {
         guard let data = try? Data(contentsOf: url) else { return nil }
-        return try? JSONDecoder().decode([StoredEntry].self, from: data)
+        if let file = try? JSONDecoder().decode(VaultFile.self, from: data) { return file }
+        // Pre-`forgotten` format: a bare entry array. Migrate on next persist.
+        if let entries = try? JSONDecoder().decode([StoredEntry].self, from: data) {
+            return VaultFile(entries: entries, forgotten: [])
+        }
+        return nil
     }
 
     private static func makeFileURL() -> URL {
