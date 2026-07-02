@@ -219,4 +219,68 @@ h.test("social recovery recovers the vault key from any 2 of 3 shares") {
     }
 }
 
+// ───────────────── Padding by tiers (§6.2) ─────────────────
+h.section("Padding by tiers — size-fingerprint quantization (SECURITY §6.2)")
+
+h.test("pad/unpad round-trips at every size class") {
+    for n in [0, 1, 17, 1023, 1024, 1025, 5000, 300_000] {
+        let payload = (0..<n).map { UInt8(truncatingIfNeeded: $0) }
+        let padded = try Padding.pad(payload)
+        try expectEqual(padded.count, Padding.tier(for: n))
+        try expectEqual(try Padding.unpad(padded), payload)
+    }
+}
+
+h.test("small content blobs share the common floor (indistinguishable)") {
+    let note = try Padding.pad(Array("première dent !".utf8))
+    let measure = try Padding.pad(Array("78 cm".utf8))
+    let quote = try Padding.pad(Array(String(repeating: "a", count: 900).utf8))
+    try expectEqual(note.count, Padding.floorBytes)
+    try expectEqual(note.count, measure.count)
+    try expectEqual(note.count, quote.count)
+}
+
+h.test("a payload exactly at a tier moves strictly up (7816-4 always pads)") {
+    let t = Padding.tier(for: 0) // the floor
+    let padded = try Padding.pad([UInt8](repeating: 7, count: t))
+    try expectEqual(padded.count, Padding.tier(for: t))
+    try expect(padded.count > t, "tier did not grow strictly")
+}
+
+h.test("corrupt padding fails cleanly, never guesses") {
+    // An all-zeros tail has no 0x80 marker: unpad must refuse.
+    try expectThrowsError({ _ = try Padding.unpad([UInt8](repeating: 0, count: Padding.floorBytes)) }) {
+        ($0 as? CryptoError) == .invalidPadding
+    }
+    try expectThrowsError({ _ = try Padding.unpad([]) }) {
+        ($0 as? CryptoError) == .invalidPadding
+    }
+}
+
+h.test("overhead is bounded (≤ ratio) and scale is not power-of-two") {
+    // Bound: for n ≥ floor, tier(n) < n · ratio · (1 + ε rounding).
+    for n in stride(from: Padding.floorBytes, through: 2_000_000, by: 37_313) {
+        let t = Padding.tier(for: n)
+        try expect(Double(t) <= Double(n) * Padding.ratio + 2, "overhead > ratio at n=\(n): tier=\(t)")
+    }
+    // Not powers of two: at least one tier below 1 MiB is not a power of two.
+    var t = Padding.floorBytes, sawNonPow2 = false
+    while t < 1 << 20 {
+        if t & (t - 1) != 0 { sawNonPow2 = true }
+        t = Padding.tier(for: t)
+    }
+    try expect(sawNonPow2, "tier scale degenerated to powers of two")
+
+    // Spike measurement (ARCHITECTURE §6 — reported, to be frozen by the owner):
+    // average overhead over representative corpora.
+    func avgOverhead(_ sizes: [Int]) -> Double {
+        let os = sizes.map { Double(Padding.tier(for: $0) - $0) / Double($0) }
+        return os.reduce(0, +) / Double(os.count)
+    }
+    let photos = stride(from: 150_000, through: 600_000, by: 9_973).map { $0 }   // stripped JPEGs (1600px q0.82)
+    let voices = stride(from: 40_000, through: 400_000, by: 7_919).map { $0 }    // short voice notes
+    print(String(format: "    [spike §6.2] floor=%dB ratio=%.2f — avg overhead photos %.1f%%, voice %.1f%%",
+                 Padding.floorBytes, Padding.ratio, avgOverhead(photos) * 100, avgOverhead(voices) * 100))
+}
+
 h.finish()

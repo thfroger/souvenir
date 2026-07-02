@@ -56,7 +56,7 @@ This inventory feeds §3 (Apple) and §4 (Google) mechanically. Nothing may appe
 | D1 | Device credential: a P-256 **public** key + credential id, bound to a vault (passkey-equivalent auth) — **no account email in V1** | **Authentication only** — never key recovery (SECURITY.md §7) | Yes (identifies the device/vault) | Yes, but it is a *public* key, not a secret | Life of vault | 
 | D2 | Subscription state / store transaction identifiers | Billing, entitlement | Yes | Yes | Life of account + accounting legal retention |
 | D3 | Encrypted blobs (memories) | Storage/sync | Yes (account-linked) | **No** (ciphertext only, invariant-protected) | Life of account + 3y read-only + deletion (SECURITY.md §4.4) |
-| D4 | Sync metadata: blob count, sizes, timestamps, version vectors | Sync correctness, conflict resolution | Yes | Partially (sizes/timing are metadata leakage — mitigated by padding, see SECURITY.md padding decision) | Operational |
+| D4 | Sync metadata: blob count, sizes, timestamps, version vectors | Sync correctness, conflict resolution | Yes | Partially (sizes/timing are metadata leakage — mitigated by client-side padding-by-tiers, SECURITY.md §6.2, **implemented 2026-07-02**; tier scale provisional pending owner freeze) | Operational |
 | D5 | Child assignment record (encrypted server-side) | Vault organization | Yes (account-linked) | **No** (encrypted) | Life of account |
 | D6 | IP addresses / connection logs | Security, abuse prevention, legal obligation | Yes | Yes | Short rotation — **DECISION NEEDED: define exact retention (proposal: 12 months max, LCEN-compatible)** |
 | D7 | Device/app version identifiers sent on sync | Compatibility, security patching | Yes | Yes | Operational |
@@ -180,7 +180,7 @@ Derived from §2. Category mapping:
 | C5 | No transcription (N4) | Scope decision (Whisper removed) | dependency audit (`import Speech` / `SFSpeechRecognizer`) | `AudioRecorder` = record/playback only | **VERIFIED** (audit clean) |
 | C6 | In-app account deletion (R3) | §4.4 deletion by owner | lifecycle test — absent | deletion flow — absent | **N/A (no code yet)** — plus: accountless (N7) reframes R3 as *delete the vault/device identity* |
 | C7 | 3-year read-only then deletion (§10) | §4.4 / §10 | server lifecycle test — absent | entitlement state machine — absent (no IAP) | **N/A (no code yet)** |
-| C8 | Metadata leakage mitigated (D4) | §6.2 padding-by-tiers `[FIGÉ]` | blob-size property test — absent | **padding layer ABSENT in code** | **BROKEN** — the decision is frozen but unimplemented; D4's "mitigated by padding" over-claims today |
+| C8 | Metadata leakage mitigated (D4) | §6.2 padding-by-tiers `[FIGÉ]` | crypto-core padding suite (round-trip, common floor, overhead bound, non-power-of-two scale) | `Padding.pad` (libsodium ISO/IEC 7816-4) before `AEAD.seal` in `MemoryStore.add`; unpad on open; flag travels with the blob payload | **PARTIAL** — mechanism implemented 2026-07-02 (floor 1024 B, ratio 1.25; measured avg overhead ≈ 12 % on photo/voice-sized corpora, worst-case ≤ 25 %); the tier *scale* stays `[À VALIDER PAR SPIKE]` until the owner freezes it |
 | C9 | EXIF stripped client-side (N1) | §8.1 minimisation (a practice, **not** a §1 invariant — elevating it is decision 7.5) | static guard in `dependency_audit.test.js`; runtime test needs an iOS test target | `ImageTools.stripExifJPEG`, called on every image ingest (`MemoryStore.addPhoto`) | **PARTIAL** (coded + static-guarded; no runtime EXIF test yet) |
 | C10 | Privacy policy ⇔ §2 inventory identical | this document | doc cross-consistency script — absent | privacy policy — absent | **N/A (no code yet)** |
 | C11 | Export compliance answer ⇔ actual crypto usage | §1 invariants + this §3.2 | manual legal review gate | `ITSAppUsesNonExemptEncryption` — **absent** from Info.plist | **TODO** (add plist key + questionnaire before first external TestFlight) |
@@ -215,6 +215,8 @@ Surfaced by the §9 run. These are **proposals for the owner to ratify**; the ag
 > - **Implement** the padding layer (the exact tier scale is `[À VALIDER PAR SPIKE]`, ARCHITECTURE.md §6), then D4 "mitigated by padding" becomes true and C8 can be `VERIFIED`; **or**
 > - until then, **weaken D4's declaration** to "sizes are metadata leakage, mitigation (padding) planned but not yet shipped" so the store forms never over-claim.
 > This is a **SECURITY-relevant gap** (a frozen decision the code does not yet honour), not merely a store-form nuance.
+>
+> **RESOLVED by implementation, 2026-07-02** — the frozen §6.2 decision needed no ratification, only execution: `crypto-core` `Padding` (libsodium ISO/IEC 7816-4, geometric tiers, common 1024 B floor) is applied before every seal in `MemoryStore.add` and unpadded on open (back-compatible flag for pre-padding entries). **Spike measured**: floor 1024 B / ratio 1.25 → average overhead ≈ 12 % (photos and voice), worst-case ≤ 25 %. **Remaining owner decision: freeze the scale constants** (they are marked provisional in `Padding.swift`). C8 is `PARTIAL` until frozen.
 
 ---
 

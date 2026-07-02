@@ -83,13 +83,18 @@ final class MemoryStore: ObservableObject {
         /// so syncing them would only pile duplicate, cross-key "unreadable" rows
         /// onto the server. Only genuine captures travel.
         let local: Bool
+        /// Plaintexts padded-by-tiers before sealing (SECURITY §6.2). Entries
+        /// written before padding existed carry `false` and skip the unpad.
+        let padded: Bool
 
-        init(id: UUID, sealed: AEAD.Sealed, sealedBlob: AEAD.Sealed?, wrappedKey: WrappedKey, local: Bool = false) {
-            self.id = id; self.sealed = sealed; self.sealedBlob = sealedBlob; self.wrappedKey = wrappedKey; self.local = local
+        init(id: UUID, sealed: AEAD.Sealed, sealedBlob: AEAD.Sealed?, wrappedKey: WrappedKey,
+             local: Bool = false, padded: Bool = false) {
+            self.id = id; self.sealed = sealed; self.sealedBlob = sealedBlob; self.wrappedKey = wrappedKey
+            self.local = local; self.padded = padded
         }
 
-        // Back-compatible decode: entries written before `local` existed load as
-        // non-local (they were already syncable), so no persisted vault breaks.
+        // Back-compatible decode: entries written before `local`/`padded` existed
+        // load with those flags false, so no persisted vault breaks.
         init(from decoder: any Decoder) throws {
             let c = try decoder.container(keyedBy: CodingKeys.self)
             id = try c.decode(UUID.self, forKey: .id)
@@ -97,14 +102,18 @@ final class MemoryStore: ObservableObject {
             sealedBlob = try c.decodeIfPresent(AEAD.Sealed.self, forKey: .sealedBlob)
             wrappedKey = try c.decode(WrappedKey.self, forKey: .wrappedKey)
             local = try c.decodeIfPresent(Bool.self, forKey: .local) ?? false
+            padded = try c.decodeIfPresent(Bool.self, forKey: .padded) ?? false
         }
     }
 
     /// What gets uploaded as the opaque blob: the entry's ciphertext parts. The
     /// DEK (wrapped under the VK) travels separately as the entry's wrapped key.
+    /// `padded` (optional for rows uploaded before padding existed) tells the
+    /// pulling device whether to unpad after opening — a flag, not content.
     private struct BlobPayload: Codable {
         let sealed: AEAD.Sealed
         let sealedBlob: AEAD.Sealed?
+        var padded: Bool? = nil
     }
 
     /// nil when the vault key can't be retrieved on this device. Entries then
@@ -224,7 +233,7 @@ final class MemoryStore: ObservableObject {
                 // (which has no delete route) nor ghost-inserted into syncedIDs.
                 guard entries.contains(where: { $0.id == e.id }), !forgottenIDs.contains(e.id) else { continue }
                 guard
-                    let blob = try? JSONEncoder().encode(BlobPayload(sealed: e.sealed, sealedBlob: e.sealedBlob)),
+                    let blob = try? JSONEncoder().encode(BlobPayload(sealed: e.sealed, sealedBlob: e.sealedBlob, padded: e.padded)),
                     let wk = try? JSONEncoder().encode(e.wrappedKey)
                 else { continue }
                 if await client.upload(entryID: e.id.uuidString, wrappedKeyB64: wk.base64EncodedString(), blob: blob),
@@ -256,7 +265,8 @@ final class MemoryStore: ObservableObject {
                     let wkData = Data(base64Encoded: row.wrappedKey),
                     let wrapped = try? JSONDecoder().decode(WrappedKey.self, from: wkData)
                 else { continue }
-                entries.append(StoredEntry(id: eid, sealed: payload.sealed, sealedBlob: payload.sealedBlob, wrappedKey: wrapped))
+                entries.append(StoredEntry(id: eid, sealed: payload.sealed, sealedBlob: payload.sealedBlob,
+                                           wrappedKey: wrapped, padded: payload.padded ?? false))
                 syncedIDs.insert(eid)
                 added = true
             }
@@ -504,10 +514,13 @@ final class MemoryStore: ObservableObject {
         guard let payload = try? JSONEncoder().encode(content) else { return }
         do {
             let dek = try DataKey.generate()
-            let sealed = try AEAD.seal(Array(payload), key: dek.bytes)
-            let sealedBlob = try blob.map { try AEAD.seal(Array($0), key: dek.bytes) }
+            // Pad-by-tiers BEFORE sealing (SECURITY §6.2): the ciphertext size the
+            // server sees is quantized, killing the exact-size fingerprint.
+            let sealed = try AEAD.seal(Padding.pad(Array(payload)), key: dek.bytes)
+            let sealedBlob = try blob.map { try AEAD.seal(Padding.pad(Array($0)), key: dek.bytes) }
             let wrapped = try KeyWrap.wrap(dek, under: vaultKey)
-            entries.append(StoredEntry(id: UUID(), sealed: sealed, sealedBlob: sealedBlob, wrappedKey: wrapped, local: local))
+            entries.append(StoredEntry(id: UUID(), sealed: sealed, sealedBlob: sealedBlob, wrappedKey: wrapped,
+                                       local: local, padded: true))
             if persistNow { persist(); syncAll() }
         } catch {
             // A failed encrypt must never surface a half-written entry (SECURITY.md §1.6).
@@ -522,16 +535,23 @@ final class MemoryStore: ObservableObject {
         return (try? AEAD.open(e.sealed, key: dek.bytes)) != nil
     }
 
+    /// Open, then unpad when the entry was padded-by-tiers (§6.2). Pre-padding
+    /// entries pass through unchanged.
+    private func openPlain(_ sealed: AEAD.Sealed, dek: SymmetricKey, padded: Bool) -> [UInt8]? {
+        guard let opened = try? AEAD.open(sealed, key: dek.bytes) else { return nil }
+        return padded ? (try? Padding.unpad(opened)) : opened
+    }
+
     private func decrypt(_ e: StoredEntry) -> Memory? {
         guard
             let vaultKey,
             let dek = try? KeyWrap.unwrap(e.wrappedKey, with: vaultKey),
-            let plain = try? AEAD.open(e.sealed, key: dek.bytes),
+            let plain = openPlain(e.sealed, dek: dek, padded: e.padded),
             let content = try? JSONDecoder().decode(Content.self, from: Data(plain))
         else { return nil }
 
         let days = max(0, Calendar.current.dateComponents([.day], from: content.createdAt, to: Date()).day ?? 0)
-        let blob = e.sealedBlob.flatMap { try? AEAD.open($0, key: dek.bytes) }.map { Data($0) }
+        let blob = e.sealedBlob.flatMap { openPlain($0, dek: dek, padded: e.padded) }.map { Data($0) }
         return Memory(id: e.id, childID: content.childID, kind: content.kind, daysAgo: days,
                       title: content.title, note: content.note, audio: content.audio, pastel: content.kind.gradient,
                       imageData: content.kind.hasPhoto ? blob : nil,
