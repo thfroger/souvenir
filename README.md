@@ -163,3 +163,6 @@ Voir la section **Système de design** ci-dessus (couleurs, typo, radius, ombres
 | `support.js` | Runtime des prototypes — **référence d'exécution uniquement, ne pas porter** | — |
 
 > Pour lire un proto : ouvrir le `.dc.html` dans un navigateur (les polices se chargent depuis Google Fonts, `support.js` doit être dans le même dossier).
+
+## Historique du dépôt
+> Historique réécrit le 04/10/2026 pour retirer une adresse e-mail personnelle des métadonnées d'auteur des commits ; aucun changement de code (les arbres de fichiers de chaque commit sont identiques).
