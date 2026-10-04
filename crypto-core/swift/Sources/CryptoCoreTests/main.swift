@@ -111,6 +111,39 @@ h.test("derived key can wrap the MIK") {
     try expectEqual(try KeyWrap.unwrap(wrapped, with: derived), mik)
 }
 
+// Device-to-device enrollment flow (SECURITY.md §3): the device that holds the
+// VK publishes {salt, MIK-under-KEK, VK-under-MIK}; another device of the same
+// user recovers the SAME VK from the passphrase alone — no memory re-encrypted.
+h.test("passphrase enrollment recovers the same VK on another device") {
+    let phrase = Array("un été à la mer".utf8)
+    let vk = try VaultKey.generate()
+
+    // Origin device: wrap VK under a fresh MIK, MIK under the passphrase-derived KEK.
+    let salt = try KDF.generateSalt()
+    let kek = try SymmetricKey(bytes: try KDF.deriveKey(password: phrase, salt: salt))
+    let mik = try MasterIdentityKey.generate()
+    let wrappedMIK = try KeyWrap.wrap(mik, under: kek)
+    let wrappedVK = try KeyWrap.wrap(vk, under: mik)
+
+    // Second device: only the passphrase + the published (salt, wrappedMIK, wrappedVK).
+    let kek2 = try SymmetricKey(bytes: try KDF.deriveKey(password: phrase, salt: salt))
+    let mik2 = try KeyWrap.unwrap(wrappedMIK, with: kek2)
+    let vk2 = try KeyWrap.unwrap(wrappedVK, with: mik2)
+    try expectEqual(vk2, vk)
+}
+
+h.test("a wrong passphrase fails the MIK unwrap, never yields a key") {
+    let salt = try KDF.generateSalt()
+    let kek = try SymmetricKey(bytes: try KDF.deriveKey(password: Array("le bon mot".utf8), salt: salt))
+    let mik = try MasterIdentityKey.generate()
+    let wrappedMIK = try KeyWrap.wrap(mik, under: kek)
+
+    let wrongKEK = try SymmetricKey(bytes: try KDF.deriveKey(password: Array("le mauvais mot".utf8), salt: salt))
+    try expectThrowsError({ _ = try KeyWrap.unwrap(wrappedMIK, with: wrongKEK) }) {
+        ($0 as? CryptoError) == .decryptionFailed
+    }
+}
+
 // ─────────────────────── Shamir (§5) ─────────────────────────────
 h.section("Shamir 2-of-3 over the Recovery Key")
 
@@ -166,6 +199,24 @@ h.test("full recovery flow: shares -> RK -> unwrap MIK (§5)") {
     let shares = try Shamir.split(secret: rk.bytes)
     let rkRecovered = try SymmetricKey(bytes: try Shamir.combine([shares[0], shares[2]]))
     try expectEqual(try KeyWrap.unwrap(mikUnderRK, with: rkRecovered), mik)
+}
+
+// The social door all the way to the VK (mirrors MemoryStore.setupSocialRecovery /
+// recoverWithShares): the server stores only {MIK-under-RK, VK-under-MIK}; two of
+// three guardian shares rebuild the RK and reach the SAME vault key.
+h.test("social recovery recovers the vault key from any 2 of 3 shares") {
+    let vk = try VaultKey.generate()
+    let mik = try MasterIdentityKey.generate()
+    let rk = try RecoveryKey.generate()
+    let mikUnderRK = try KeyWrap.wrap(mik, under: rk)
+    let vkUnderMIK = try KeyWrap.wrap(vk, under: mik)
+    let shares = try Shamir.split(secret: rk.bytes)
+
+    for pair in [[shares[0], shares[1]], [shares[0], shares[2]], [shares[1], shares[2]]] {
+        let rk2 = try SymmetricKey(bytes: try Shamir.combine(pair))
+        let mik2 = try KeyWrap.unwrap(mikUnderRK, with: rk2)
+        try expectEqual(try KeyWrap.unwrap(vkUnderMIK, with: mik2), vk)
+    }
 }
 
 h.finish()

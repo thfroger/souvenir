@@ -12,5 +12,12 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<!-- Reaching the dev backend by its LAN IP from a physical iPhone trips iOS's
+	     local-network privacy prompt (iOS 14+). This description makes the prompt
+	     well-formed; without it the first connection can fail silently. The app
+	     only contacts the local network through the DEBUG-only server override
+	     (BackendConfig) — never in normal use. -->
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Connecte l’app à un serveur de développement sur votre réseau local. Utilisé uniquement pour les tests.</string>
 </dict>
 </plist>

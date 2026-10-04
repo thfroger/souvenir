@@ -68,6 +68,15 @@ struct CaptureView: View {
 
                 Spacer()
 
+                // A capture that can't be sealed must say so — never dismiss as if
+                // saved while `add()` dropped it (the vault key is unavailable).
+                if store.keyState != .ready {
+                    Text("La clé de ton coffre est indisponible sur cet appareil — impossible de garder un souvenir pour l'instant. Retrouve-la d'abord avec ta phrase secrète (Réglages → Mes appareils).")
+                        .font(Typo.sans(13))
+                        .foregroundStyle(Color(red: 0.62, green: 0.26, blue: 0.22))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
                 HStack {
                     Spacer()
                     Button(action: save) {
@@ -76,9 +85,9 @@ struct CaptureView: View {
                             .foregroundStyle(.white)
                             .padding(.vertical, 13)
                             .padding(.horizontal, 34)
-                            .background(canSave ? Palette.ink : Palette.muted, in: Capsule())
+                            .background(canSave && store.keyState == .ready ? Palette.ink : Palette.muted, in: Capsule())
                     }
-                    .disabled(!canSave)
+                    .disabled(!canSave || store.keyState != .ready)
                     Spacer()
                 }
             }
@@ -228,6 +237,9 @@ struct CaptureView: View {
     }
 
     private func save() {
+        // Belt-and-suspenders with the disabled button: `add()` refuses to seal
+        // without the vault key, so closing here would fake a success.
+        guard store.keyState == .ready else { return }
         switch kind {
         case .citation: store.addCitation(childID: childID, quote: text, title: title)
         case .measure: store.addMeasure(childID: childID, value: text)

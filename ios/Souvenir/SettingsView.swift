@@ -10,6 +10,7 @@ struct SettingsView: View {
     let onClose: () -> Void
 
     @State private var showRecovery = false
+    @State private var showSync = false
 
     var body: some View {
         ZStack {
@@ -18,6 +19,7 @@ struct SettingsView: View {
                 VStack(alignment: .leading, spacing: 28) {
                     topBar
                     title
+                    syncRow
                     recoveryRow
                     #if DEBUG
                     DebugSeasonSection()
@@ -30,8 +32,40 @@ struct SettingsView: View {
             }
         }
         .sheet(isPresented: $showRecovery) {
-            SocialRecoveryView(childName: childName) { showRecovery = false }
+            SocialRecoveryView(childName: childName, store: store) { showRecovery = false }
         }
+        .sheet(isPresented: $showSync) {
+            VaultSyncView { showSync = false }
+                .environmentObject(store)
+        }
+    }
+
+    private var syncRow: some View {
+        Button { showSync = true } label: {
+            HStack(spacing: 14) {
+                Image(systemName: "iphone.and.arrow.forward")
+                    .foregroundStyle(Palette.accent)
+                    .frame(width: 24)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Mes appareils")
+                        .font(Typo.sans(16, .medium))
+                        .foregroundStyle(Palette.ink)
+                    Text("Une phrase secrète pour retrouver tes souvenirs partout.")
+                        .font(Typo.sans(13))
+                        .foregroundStyle(Palette.muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Palette.faint)
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.white, in: RoundedRectangle(cornerRadius: 18))
+            .overlay(RoundedRectangle(cornerRadius: 18).stroke(Palette.paperAlt, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
     }
 
     private var topBar: some View {
@@ -177,12 +211,12 @@ private struct ServerSettingsSection: View {
                 store.reconnect()
                 saved = true
             } label: {
-                Text(saved ? "Connecté ✓" : "Enregistrer et reconnecter")
+                Text(buttonLabel)
                     .font(Typo.sans(16, .semibold))
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 15)
-                    .background(Palette.ink, in: RoundedRectangle(cornerRadius: 100))
+                    .background(buttonBackground, in: RoundedRectangle(cornerRadius: 100))
             }
         }
         .padding(18)
@@ -194,6 +228,26 @@ private struct ServerSettingsSection: View {
         if trimmed.isEmpty { return "→ localhost:8787 (défaut simulateur)" }
         if let url = preview { return "→ \(url.absoluteString)" }
         return "adresse non valide"
+    }
+
+    // The button must report the real reconnect result — not optimistically claim
+    // success — so the on-device sync test actually means something.
+    private var buttonLabel: String {
+        guard saved else { return "Enregistrer et reconnecter" }
+        switch store.connState {
+        case .connecting: return "Connexion…"
+        case .connected:  return "Connecté ✓"
+        case .failed:     return "Hors ligne — réessayer"
+        case .idle:       return "Enregistrer et reconnecter"
+        }
+    }
+
+    private var buttonBackground: Color {
+        guard saved else { return Palette.ink }
+        switch store.connState {
+        case .failed: return Color(red: 0.62, green: 0.26, blue: 0.22) // brick: honest failure
+        default:      return Palette.ink
+        }
     }
 }
 #endif

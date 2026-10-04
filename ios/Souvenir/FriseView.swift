@@ -8,6 +8,8 @@ struct FriseView: View {
     @Binding var selectedChildID: UUID
     @Binding var openedMemory: Memory?
     @State private var showSettings = false
+    @State private var showSync = false
+    @State private var showForget = false
 
     private var child: Child {
         SampleData.children.first { $0.id == selectedChildID } ?? SampleData.lea
@@ -27,6 +29,7 @@ struct FriseView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 26) {
                     header
+                    keyWarning
                     childSelector
                     Button {
                         withAnimation(.easeInOut(duration: 0.7)) {
@@ -54,6 +57,10 @@ struct FriseView: View {
             SettingsView(childName: child.name) { showSettings = false }
                 .environmentObject(store)
         }
+        .sheet(isPresented: $showSync) {
+            VaultSyncView(start: .recover) { showSync = false }
+                .environmentObject(store)
+        }
     }
 
     /// The surprise is shown immersively as a memory from `yearsAgo` back.
@@ -61,6 +68,59 @@ struct FriseView: View {
         Memory(childID: child.id, kind: .photo, daysAgo: 365 * s.yearsAgo,
                title: s.title, note: s.subtitle, audio: nil, pastel: s.pastel)
     }
+
+    // MARK: key-unavailable banner
+
+    // Honest signal instead of a silently-empty Frise: when entries exist but
+    // can't be decrypted, say so (and why), rather than dropping them in silence.
+    @ViewBuilder private var keyWarning: some View {
+        let n = store.unreadableCount
+        if n > 0 {
+            let plural = n > 1
+            VStack(alignment: .leading, spacing: 6) {
+                Label("\(n) souvenir\(plural ? "s" : "") illisible\(plural ? "s" : "")",
+                      systemImage: "lock.trianglebadge.exclamationmark")
+                    .font(Typo.sans(14.5, .medium))
+                    .foregroundStyle(brick)
+                Text(store.keyState == .unavailable
+                     ? "La clé de ce coffre est introuvable sur cet appareil. Ces souvenirs restent à l'abri, mais ne peuvent pas être déchiffrés ici — et aucune copie de la clé n'existe ailleurs, c'est ce qui les protège."
+                     : "Ils ont été scellés avec une autre clé, absente de cet appareil — sans doute les reliquats d'un ancien coffre. Ils sont irrécupérables, et tu peux les oublier.")
+                    .font(Typo.sans(12.5))
+                    .foregroundStyle(Palette.inkSoft)
+                    .fixedSize(horizontal: false, vertical: true)
+                if store.keyState == .unavailable {
+                    Button { showSync = true } label: {
+                        Text("Saisir ma phrase de récupération")
+                            .font(Typo.sans(13, .semibold))
+                            .foregroundStyle(brick)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.top, 2)
+                } else {
+                    Button(role: .destructive) { showForget = true } label: {
+                        Text("Oublier ces souvenirs illisibles")
+                            .font(Typo.sans(13, .semibold))
+                            .foregroundStyle(brick)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.top, 2)
+                }
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(brick.opacity(0.08), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(brick.opacity(0.28), lineWidth: 1))
+            .confirmationDialog("Oublier \(n) souvenir\(plural ? "s" : "") illisible\(plural ? "s" : "") ?",
+                                isPresented: $showForget, titleVisibility: .visible) {
+                Button("Oublier définitivement", role: .destructive) { store.forgetUnreadable() }
+                Button("Annuler", role: .cancel) {}
+            } message: {
+                Text("Leur clé n'existe nulle part — ils sont déjà irrécupérables. Cette action les retire seulement de cet appareil.")
+            }
+        }
+    }
+
+    private var brick: Color { Color(red: 0.62, green: 0.26, blue: 0.22) }
 
     // MARK: header
 

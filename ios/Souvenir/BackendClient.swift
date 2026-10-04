@@ -66,6 +66,83 @@ struct BackendClient {
         try? await fetchBlob(hash: hash)
     }
 
+    // MARK: identity bundle (SECURITY.md §3 — cross-device vault-key adoption)
+
+    /// All three fields are opaque to the server: the MIK wrapped under a
+    /// passphrase-derived key, the VK wrapped under the MIK, plus the (non-secret)
+    /// KDF salt. The server never sees the passphrase or any key in clear.
+    struct IdentityBundle {
+        let saltB64: String
+        let wrappedMIK: String
+        let wrappedVK: String
+    }
+
+    /// Publish the identity bundle so the user's other trusted devices can adopt
+    /// the same vault key from the passphrase. Best-effort.
+    func putIdentity(_ bundle: IdentityBundle) async -> Bool {
+        do {
+            var req = request("vaults/\(vault)/identity", "PUT")
+            req.httpBody = try JSONSerialization.data(withJSONObject: [
+                "salt_b64": bundle.saltB64,
+                "wrapped_mik": bundle.wrappedMIK,
+                "wrapped_vk": bundle.wrappedVK,
+            ])
+            try await send(req)
+            return true
+        } catch {
+            return false
+        }
+    }
+
+    /// Fetch the identity bundle. `nil` means the server answered 404 — no bundle
+    /// was ever published. A network/server failure THROWS instead: collapsing it
+    /// into nil would tell an enrolled user "no passphrase was ever set" whenever
+    /// the connection drops.
+    func getIdentity() async throws -> IdentityBundle? {
+        let (data, resp) = try await URLSession.shared.data(for: request("vaults/\(vault)/identity", "GET"))
+        if (resp as? HTTPURLResponse)?.statusCode == 404 { return nil }
+        try ensureOK(resp)
+        let obj = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        guard let salt = obj?["salt_b64"] as? String,
+              let wm = obj?["wrapped_mik"] as? String,
+              let wv = obj?["wrapped_vk"] as? String else { throw URLError(.cannotParseResponse) }
+        return IdentityBundle(saltB64: salt, wrappedMIK: wm, wrappedVK: wv)
+    }
+
+    // MARK: social-recovery bundle (SECURITY.md §5 — Shamir over the Recovery Key)
+
+    /// Opaque to the server: the MIK wrapped under the RK (whose Shamir shares live
+    /// with the guardians, never here) and the VK wrapped under the MIK.
+    struct RecoveryBundle {
+        let wrappedMIK_RK: String
+        let wrappedVK: String
+    }
+
+    func putRecovery(_ bundle: RecoveryBundle) async -> Bool {
+        do {
+            var req = request("vaults/\(vault)/recovery", "PUT")
+            req.httpBody = try JSONSerialization.data(withJSONObject: [
+                "wrapped_mik_rk": bundle.wrappedMIK_RK,
+                "wrapped_vk": bundle.wrappedVK,
+            ])
+            try await send(req)
+            return true
+        } catch {
+            return false
+        }
+    }
+
+    /// Same contract as `getIdentity`: nil = 404 (never armed), throw = unreachable.
+    func getRecovery() async throws -> RecoveryBundle? {
+        let (data, resp) = try await URLSession.shared.data(for: request("vaults/\(vault)/recovery", "GET"))
+        if (resp as? HTTPURLResponse)?.statusCode == 404 { return nil }
+        try ensureOK(resp)
+        let obj = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        guard let wmrk = obj?["wrapped_mik_rk"] as? String,
+              let wv = obj?["wrapped_vk"] as? String else { throw URLError(.cannotParseResponse) }
+        return RecoveryBundle(wrappedMIK_RK: wmrk, wrappedVK: wv)
+    }
+
     // MARK: routes
 
     private func putBlob(hash: String, blob: Data) async throws {
